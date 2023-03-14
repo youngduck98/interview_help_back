@@ -24,11 +24,25 @@ def main_page_mesg():
 
 @api.route('/interest_list/<string:uuid>')
 class interest_list(Resource):
-    def get(self, uuid):
-         #raw_interest_list = User.query.filter_by(user_uuid=uuid).first().interesting_field
-         raw_interest_list = "ab,cd,ef,gh"
+    def get(self, uuid): 
+         raw_interest_list = module.User.query.filter_by(user_uuid=uuid).first().interesting_field
+         #raw_interest_list = "ab,cd,ef,gh" #test code
          interest_list = raw_interest_list.split(',')
          return interest_list
+    def put(self, uuid):
+        interest_list = request.get_json()['interest_list']
+        #interest_list = ['i1', 'i2', 'i3', 'i4', 'i5'] # testcode
+        processed_list = ""
+        for interest_subject in interest_list:
+            processed_list += interest_subject + ','
+        processed_list = processed_list[0:-1]
+        try:
+            user = module.User.query.filter_by(user_uuid=uuid).first()
+            user.interesting_field = processed_list
+            db.session.commit()
+        except:
+            return 0
+        return 1
 
 if __name__ == "__main__":
     app.run(host = "0.0.0.0")

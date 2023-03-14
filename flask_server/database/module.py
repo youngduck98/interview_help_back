@@ -5,14 +5,6 @@ class user_info_table(db.Model):
 
     user_uuid = db.Column(db.Integer, primary_key=True)
     git_nickname = db.Column(db.String(45))
-    
-# coding: utf-8
-from flask_sqlalchemy import SQLAlchemy
-
-
-db = SQLAlchemy()
-
-
 
 class Achievement(db.Model):
     __tablename__ = 'Achievement'
