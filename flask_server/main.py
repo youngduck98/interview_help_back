@@ -25,8 +25,9 @@ def main_page_mesg():
 @api.route('/interest_list/<string:uuid>')
 class interest_list(Resource):
     def get(self, uuid):
-         raw_interest_list = User.query.filter_by(user_uuid=uuid).first().interesting_field
-         interest_list = raw_interest_list.split()
+         #raw_interest_list = User.query.filter_by(user_uuid=uuid).first().interesting_field
+         raw_interest_list = "ab,cd,ef,gh"
+         interest_list = raw_interest_list.split(',')
          return interest_list
 
 if __name__ == "__main__":
