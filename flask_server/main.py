@@ -16,10 +16,36 @@ api = Api(app) # api that make restapi more easier
 @api.route('/test/<string:uuid>')
 class test(Resource):
     def get(self, uuid):
-        return module.user_info_table.query.filter_by(user_uuid=uuid).first().git_nickname
+        try:
+            nick = module.user_info_table.query.filter_by(user_uuid=uuid).first().git_nickname
+        except:
+            return 0
+        return nick
     def post(self, uuid):
-        data = request.get_json()
-        return jsonify(data)
+        try:
+            data = request.get_json()['git_nickname']
+            user_info = module.user_info_table(uuid, data)
+            db.session.add(user_info)
+            db.session.commit()
+        except:
+            return 0
+        return 1
+    def put(self, uuid):
+        try:
+            user_info = module.user_info_table.get(uuid)
+            user_info.git_nickname = request.get_json()['git_nickname']
+            db.session.commit()
+        except:
+            return 0
+        return 1
+    def delete(self, uuid):
+        try:
+            user_info = module.user_info_table.get(uuid)
+            db.session.delete(user_info)
+            db.session.commit()
+        except:
+            return 0
+        return 1
 
 @app.route('/main')
 def main_page_mesg():
@@ -45,6 +71,7 @@ class user(Resource):
         new_user = module.User(uuid, new_git_nickname, new_interesting_field)
         try:
             db.session.add(new_user)
+            db.session.commit()
         except:
             return 0
         return 1

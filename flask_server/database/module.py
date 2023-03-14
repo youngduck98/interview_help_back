@@ -6,6 +6,10 @@ class user_info_table(db.Model):
     user_uuid = db.Column(db.Integer, primary_key=True)
     git_nickname = db.Column(db.String(45))
 
+    def __init__(self, user_uuid, git_nickname):
+        self.user_uuid = user_uuid
+        self.git_nickname = git_nickname
+
 class Achievement(db.Model):
     __tablename__ = 'Achievement'
 
