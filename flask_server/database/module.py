@@ -129,3 +129,8 @@ class User(db.Model):
     user_uuid = db.Column(db.String(36), primary_key=True)
     git_nickname = db.Column(db.String(200))
     interesting_field = db.Column(db.String(1000))
+
+    def __init__(self, user_uuid, git_nickname, interesting_field):
+        self.user_uuid = user_uuid
+        self.git_nickname = git_nickname
+        self.interesting_field = interesting_field
