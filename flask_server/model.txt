@@ -1,0 +1,1769 @@
+# coding: utf-8
+from flask_sqlalchemy import SQLAlchemy
+
+
+db = SQLAlchemy()
+
+
+
+class Achievement(db.Model):
+    __tablename__ = 'Achievement'
+
+    achi_uuid = db.Column(db.String(36), primary_key=True)
+    host_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
+    achi_type = db.Column(db.Integer)
+    achi_text = db.Column(db.String(200))
+    date = db.Column(db.BigInteger)
+
+    User = db.relationship('User', primaryjoin='Achievement.host_uuid == User.user_uuid', backref='achievements')
+
+
+
+class Attendance(db.Model):
+    __tablename__ = 'Attendance'
+
+    att_uuid = db.Column(db.String(36), primary_key=True)
+    user_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
+    att_point = db.Column(db.Integer)
+    att_continuity = db.Column(db.Integer)
+    att_date = db.Column(db.DateTime)
+
+    User = db.relationship('User', primaryjoin='Attendance.user_uuid == User.user_uuid', backref='attendances')
+
+
+
+class CommonQue(db.Model):
+    __tablename__ = 'CommonQues'
+
+    ques_uuid = db.Column(db.String(36), primary_key=True)
+    contents = db.Column(db.String(1000))
+    ques_type = db.Column(db.Integer)
+
+
+
+class IndividualQue(db.Model):
+    __tablename__ = 'IndividualQues'
+
+    ques_uuid = db.Column(db.String(36), primary_key=True)
+    user_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
+    script_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), index=True)
+
+    SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='IndividualQue.script_uuid == SynthesisSelfIntroduction.script_uuid', backref='individual_ques')
+    User = db.relationship('User', primaryjoin='IndividualQue.user_uuid == User.user_uuid', backref='individual_ques')
+
+
+
+class InterviewLog(db.Model):
+    __tablename__ = 'InterviewLog'
+
+    log_uuid = db.Column(db.String(36), primary_key=True)
+    inter_ques_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), index=True)
+    log_date = db.Column(db.DateTime)
+    log_content = db.Column(db.String(1000))
+    log_type = db.Column(db.Integer)
+    log_progress = db.Column(db.Integer)
+
+    MockInterview = db.relationship('MockInterview', primaryjoin='InterviewLog.inter_ques_uuid == MockInterview.interview_uuid', backref='interview_logs')
+
+
+
+class InterviewQuestion(db.Model):
+    __tablename__ = 'InterviewQuestion'
+
+    inter_ques_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), db.ForeignKey('MockInterview.interview_uuid'), index=True)
+    common_question_uuid = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
+    indiv_ques_uuid = db.Column(db.String(36))
+    type = db.Column(db.Integer)
+
+    CommonQue = db.relationship('CommonQue', primaryjoin='InterviewQuestion.common_question_uuid == CommonQue.ques_uuid', backref='interview_questions')
+    MockInterview = db.relationship('MockInterview', primaryjoin='InterviewQuestion.interview_uuid == MockInterview.interview_uuid', backref='interview_questions')
+    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuestion.interview_uuid == IndividualQue.ques_uuid', backref='interview_questions')
+
+
+
+class ItemSelfIntroduction(db.Model):
+    __tablename__ = 'ItemSelfIntroduction'
+
+    script_item_uuid = db.Column(db.String(36), primary_key=True)
+    script_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), index=True)
+    contents = db.Column(db.String(5000))
+    index = db.Column(db.Integer)
+
+    SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='ItemSelfIntroduction.script_uuid == SynthesisSelfIntroduction.script_uuid', backref='item_self_introductions')
+
+
+
+class MockInterview(db.Model):
+    __tablename__ = 'MockInterview'
+
+    interview_uuid = db.Column(db.String(36), primary_key=True)
+    interview_host_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
+    score = db.Column(db.Integer)
+    referenced_script = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), index=True)
+    end_time = db.Column(db.DateTime)
+    self_memo = db.Column(db.String(5000))
+
+    User = db.relationship('User', primaryjoin='MockInterview.interview_host_uuid == User.user_uuid', backref='mock_interviews')
+    SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='MockInterview.referenced_script == SynthesisSelfIntroduction.script_uuid', backref='mock_interviews')
+
+
+
+class SynthesisSelfIntroduction(db.Model):
+    __tablename__ = 'SynthesisSelfIntroduction'
+
+    script_uuid = db.Column(db.String(36), primary_key=True)
+    script_host = db.Column(db.ForeignKey('User.user_uuid'), index=True)
+    script_date = db.Column(db.DateTime)
+    script_name = db.Column(db.String(200))
+
+    User = db.relationship('User', primaryjoin='SynthesisSelfIntroduction.script_host == User.user_uuid', backref='synthesis_self_introductions')
+
+
+
+class TodayQue(db.Model):
+    __tablename__ = 'TodayQues'
+
+    tq_uuid = db.Column(db.String(36), primary_key=True)
+    user_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
+    today_ques = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
+    user_memo = db.Column(db.String(800))
+    date = db.Column(db.DateTime)
+
+    CommonQue = db.relationship('CommonQue', primaryjoin='TodayQue.today_ques == CommonQue.ques_uuid', backref='today_ques')
+    User = db.relationship('User', primaryjoin='TodayQue.user_uuid == User.user_uuid', backref='today_ques')
+
+
+
+class User(db.Model):
+    __tablename__ = 'User'
+
+    user_uuid = db.Column(db.String(36), primary_key=True)
+    git_nickname = db.Column(db.String(200))
+    interesting_field = db.Column(db.String(1000))
+    name = db.Column(db.String(100))
+    email = db.Column(db.String(200))
+
+
+
+t_host_summary = db.Table(
+    'host_summary',
+    db.Column('host', db.String(255)),
+    db.Column('statements', db.Numeric(64, 0)),
+    db.Column('statement_latency', db.String(11)),
+    db.Column('statement_avg_latency', db.String(11)),
+    db.Column('table_scans', db.Numeric(65, 0)),
+    db.Column('file_ios', db.Numeric(64, 0)),
+    db.Column('file_io_latency', db.String(11)),
+    db.Column('current_connections', db.Numeric(41, 0)),
+    db.Column('total_connections', db.Numeric(41, 0)),
+    db.Column('unique_users', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('current_memory', db.String(11)),
+    db.Column('total_memory_allocated', db.String(11))
+)
+
+
+
+t_host_summary_by_file_io = db.Table(
+    'host_summary_by_file_io',
+    db.Column('host', db.String(255)),
+    db.Column('ios', db.Numeric(42, 0)),
+    db.Column('io_latency', db.String(11))
+)
+
+
+
+t_host_summary_by_file_io_type = db.Table(
+    'host_summary_by_file_io_type',
+    db.Column('host', db.String(255)),
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('max_latency', db.String(11))
+)
+
+
+
+t_host_summary_by_stages = db.Table(
+    'host_summary_by_stages',
+    db.Column('host', db.String(255)),
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11))
+)
+
+
+
+t_host_summary_by_statement_latency = db.Table(
+    'host_summary_by_statement_latency',
+    db.Column('host', db.String(255)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.String(11)),
+    db.Column('max_latency', db.String(11)),
+    db.Column('lock_latency', db.String(11)),
+    db.Column('cpu_latency', db.String(11)),
+    db.Column('rows_sent', db.Numeric(42, 0)),
+    db.Column('rows_examined', db.Numeric(42, 0)),
+    db.Column('rows_affected', db.Numeric(42, 0)),
+    db.Column('full_scans', db.Numeric(43, 0))
+)
+
+
+
+t_host_summary_by_statement_type = db.Table(
+    'host_summary_by_statement_type',
+    db.Column('host', db.String(255)),
+    db.Column('statement', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('max_latency', db.String(11)),
+    db.Column('lock_latency', db.String(11)),
+    db.Column('cpu_latency', db.String(11)),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('full_scans', db.BigInteger, server_default=db.FetchedValue())
+)
+
+
+
+t_innodb_buffer_stats_by_schema = db.Table(
+    'innodb_buffer_stats_by_schema',
+    db.Column('object_schema', db.Text),
+    db.Column('allocated', db.String(11)),
+    db.Column('data', db.String(11)),
+    db.Column('pages', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('pages_hashed', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('pages_old', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('rows_cached', db.Numeric(45, 0))
+)
+
+
+
+t_innodb_buffer_stats_by_table = db.Table(
+    'innodb_buffer_stats_by_table',
+    db.Column('object_schema', db.Text),
+    db.Column('object_name', db.Text),
+    db.Column('allocated', db.String(11)),
+    db.Column('data', db.String(11)),
+    db.Column('pages', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('pages_hashed', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('pages_old', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('rows_cached', db.Numeric(45, 0))
+)
+
+
+
+t_innodb_lock_waits = db.Table(
+    'innodb_lock_waits',
+    db.Column('wait_started', db.DateTime),
+    db.Column('wait_age', db.Time),
+    db.Column('wait_age_secs', db.BigInteger),
+    db.Column('locked_table', db.String),
+    db.Column('locked_table_schema', db.String(64)),
+    db.Column('locked_table_name', db.String(64)),
+    db.Column('locked_table_partition', db.String(64)),
+    db.Column('locked_table_subpartition', db.String(64)),
+    db.Column('locked_index', db.String(64)),
+    db.Column('locked_type', db.String(32)),
+    db.Column('waiting_trx_id', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('waiting_trx_started', db.DateTime, server_default=db.FetchedValue()),
+    db.Column('waiting_trx_age', db.Time),
+    db.Column('waiting_trx_rows_locked', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('waiting_trx_rows_modified', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('waiting_pid', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('waiting_query', db.String),
+    db.Column('waiting_lock_id', db.String(128)),
+    db.Column('waiting_lock_mode', db.String(32)),
+    db.Column('blocking_trx_id', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('blocking_pid', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('blocking_query', db.String),
+    db.Column('blocking_lock_id', db.String(128)),
+    db.Column('blocking_lock_mode', db.String(32)),
+    db.Column('blocking_trx_started', db.DateTime, server_default=db.FetchedValue()),
+    db.Column('blocking_trx_age', db.Time),
+    db.Column('blocking_trx_rows_locked', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('blocking_trx_rows_modified', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('sql_kill_blocking_query', db.String(33)),
+    db.Column('sql_kill_blocking_connection', db.String(27))
+)
+
+
+
+t_io_by_thread_by_latency = db.Table(
+    'io_by_thread_by_latency',
+    db.Column('user', db.String(288)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.String(11)),
+    db.Column('min_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('max_latency', db.String(11)),
+    db.Column('thread_id', db.BigInteger),
+    db.Column('processlist_id', db.BigInteger)
+)
+
+
+
+t_io_global_by_file_by_bytes = db.Table(
+    'io_global_by_file_by_bytes',
+    db.Column('file', db.String(512)),
+    db.Column('count_read', db.BigInteger),
+    db.Column('total_read', db.String(11)),
+    db.Column('avg_read', db.String(11)),
+    db.Column('count_write', db.BigInteger),
+    db.Column('total_written', db.String(11)),
+    db.Column('avg_write', db.String(11)),
+    db.Column('total', db.String(11)),
+    db.Column('write_pct', db.Numeric(26, 2), server_default=db.FetchedValue())
+)
+
+
+
+t_io_global_by_file_by_latency = db.Table(
+    'io_global_by_file_by_latency',
+    db.Column('file', db.String(512)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('count_read', db.BigInteger),
+    db.Column('read_latency', db.String(11)),
+    db.Column('count_write', db.BigInteger),
+    db.Column('write_latency', db.String(11)),
+    db.Column('count_misc', db.BigInteger),
+    db.Column('misc_latency', db.String(11))
+)
+
+
+
+t_io_global_by_wait_by_bytes = db.Table(
+    'io_global_by_wait_by_bytes',
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('min_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('max_latency', db.String(11)),
+    db.Column('count_read', db.BigInteger),
+    db.Column('total_read', db.String(11)),
+    db.Column('avg_read', db.String(11)),
+    db.Column('count_write', db.BigInteger),
+    db.Column('total_written', db.String(11)),
+    db.Column('avg_written', db.String(11)),
+    db.Column('total_requested', db.String(11))
+)
+
+
+
+t_io_global_by_wait_by_latency = db.Table(
+    'io_global_by_wait_by_latency',
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('max_latency', db.String(11)),
+    db.Column('read_latency', db.String(11)),
+    db.Column('write_latency', db.String(11)),
+    db.Column('misc_latency', db.String(11)),
+    db.Column('count_read', db.BigInteger),
+    db.Column('total_read', db.String(11)),
+    db.Column('avg_read', db.String(11)),
+    db.Column('count_write', db.BigInteger),
+    db.Column('total_written', db.String(11)),
+    db.Column('avg_written', db.String(11))
+)
+
+
+
+t_latest_file_io = db.Table(
+    'latest_file_io',
+    db.Column('thread', db.String(317)),
+    db.Column('file', db.String(512)),
+    db.Column('latency', db.String(11)),
+    db.Column('operation', db.String(32)),
+    db.Column('requested', db.String(11))
+)
+
+
+
+t_memory_by_host_by_current_bytes = db.Table(
+    'memory_by_host_by_current_bytes',
+    db.Column('host', db.String(255)),
+    db.Column('current_count_used', db.Numeric(41, 0)),
+    db.Column('current_allocated', db.String(11)),
+    db.Column('current_avg_alloc', db.String(11)),
+    db.Column('current_max_alloc', db.String(11)),
+    db.Column('total_allocated', db.String(11))
+)
+
+
+
+t_memory_by_thread_by_current_bytes = db.Table(
+    'memory_by_thread_by_current_bytes',
+    db.Column('thread_id', db.BigInteger),
+    db.Column('user', db.String(288)),
+    db.Column('current_count_used', db.Numeric(41, 0)),
+    db.Column('current_allocated', db.String(11)),
+    db.Column('current_avg_alloc', db.String(11)),
+    db.Column('current_max_alloc', db.String(11)),
+    db.Column('total_allocated', db.String(11))
+)
+
+
+
+t_memory_by_user_by_current_bytes = db.Table(
+    'memory_by_user_by_current_bytes',
+    db.Column('user', db.String(32)),
+    db.Column('current_count_used', db.Numeric(41, 0)),
+    db.Column('current_allocated', db.String(11)),
+    db.Column('current_avg_alloc', db.String(11)),
+    db.Column('current_max_alloc', db.String(11)),
+    db.Column('total_allocated', db.String(11))
+)
+
+
+
+t_memory_global_by_current_bytes = db.Table(
+    'memory_global_by_current_bytes',
+    db.Column('event_name', db.String(128)),
+    db.Column('current_count', db.BigInteger),
+    db.Column('current_alloc', db.String(11)),
+    db.Column('current_avg_alloc', db.String(11)),
+    db.Column('high_count', db.BigInteger),
+    db.Column('high_alloc', db.String(11)),
+    db.Column('high_avg_alloc', db.String(11))
+)
+
+
+
+t_memory_global_total = db.Table(
+    'memory_global_total',
+    db.Column('total_allocated', db.String(11))
+)
+
+
+
+t_metrics = db.Table(
+    'metrics',
+    db.Column('Variable_name', db.String(193)),
+    db.Column('Variable_value', db.Text),
+    db.Column('Type', db.String(210)),
+    db.Column('Enabled', db.String(7))
+)
+
+
+
+t_processlist = db.Table(
+    'processlist',
+    db.Column('thd_id', db.BigInteger),
+    db.Column('conn_id', db.BigInteger),
+    db.Column('user', db.String(288)),
+    db.Column('db', db.String(64)),
+    db.Column('command', db.String(16)),
+    db.Column('state', db.String(64)),
+    db.Column('time', db.BigInteger),
+    db.Column('current_statement', db.String),
+    db.Column('statement_latency', db.String(11)),
+    db.Column('progress', db.Numeric(26, 2)),
+    db.Column('lock_latency', db.String(11)),
+    db.Column('cpu_latency', db.String(11)),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('tmp_tables', db.BigInteger),
+    db.Column('tmp_disk_tables', db.BigInteger),
+    db.Column('full_scan', db.String(3)),
+    db.Column('last_statement', db.String),
+    db.Column('last_statement_latency', db.String(11)),
+    db.Column('current_memory', db.String(11)),
+    db.Column('last_wait', db.String(128)),
+    db.Column('last_wait_latency', db.String(13)),
+    db.Column('source', db.String(64)),
+    db.Column('trx_latency', db.String(11)),
+    db.Column('trx_state', db.Enum('ACTIVE', 'COMMITTED', 'ROLLED BACK')),
+    db.Column('trx_autocommit', db.Enum('YES', 'NO')),
+    db.Column('pid', db.String(1024)),
+    db.Column('program_name', db.String(1024))
+)
+
+
+
+t_ps_check_lost_instrumentation = db.Table(
+    'ps_check_lost_instrumentation',
+    db.Column('variable_name', db.String(64)),
+    db.Column('variable_value', db.String(1024))
+)
+
+
+
+t_schema_auto_increment_columns = db.Table(
+    'schema_auto_increment_columns',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('column_name', db.String(64)),
+    db.Column('data_type', db.String),
+    db.Column('column_type', db.String),
+    db.Column('is_signed', db.Integer, server_default=db.FetchedValue()),
+    db.Column('is_unsigned', db.Integer, server_default=db.FetchedValue()),
+    db.Column('max_value', db.BigInteger),
+    db.Column('auto_increment', db.BigInteger),
+    db.Column('auto_increment_ratio', db.Numeric(25, 4))
+)
+
+
+
+t_schema_index_statistics = db.Table(
+    'schema_index_statistics',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('index_name', db.String(64)),
+    db.Column('rows_selected', db.BigInteger),
+    db.Column('select_latency', db.String(11)),
+    db.Column('rows_inserted', db.BigInteger),
+    db.Column('insert_latency', db.String(11)),
+    db.Column('rows_updated', db.BigInteger),
+    db.Column('update_latency', db.String(11)),
+    db.Column('rows_deleted', db.BigInteger),
+    db.Column('delete_latency', db.String(11))
+)
+
+
+
+t_schema_object_overview = db.Table(
+    'schema_object_overview',
+    db.Column('db', db.String(64)),
+    db.Column('object_type', db.String(19)),
+    db.Column('count', db.BigInteger, server_default=db.FetchedValue())
+)
+
+
+
+t_schema_redundant_indexes = db.Table(
+    'schema_redundant_indexes',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('redundant_index_name', db.String(64)),
+    db.Column('redundant_index_columns', db.Text),
+    db.Column('redundant_index_non_unique', db.Integer),
+    db.Column('dominant_index_name', db.String(64)),
+    db.Column('dominant_index_columns', db.Text),
+    db.Column('dominant_index_non_unique', db.Integer),
+    db.Column('subpart_exists', db.Integer, server_default=db.FetchedValue()),
+    db.Column('sql_drop_index', db.String(223))
+)
+
+
+
+t_schema_table_lock_waits = db.Table(
+    'schema_table_lock_waits',
+    db.Column('object_schema', db.String(64)),
+    db.Column('object_name', db.String(64)),
+    db.Column('waiting_thread_id', db.BigInteger),
+    db.Column('waiting_pid', db.BigInteger),
+    db.Column('waiting_account', db.Text),
+    db.Column('waiting_lock_type', db.String(32)),
+    db.Column('waiting_lock_duration', db.String(32)),
+    db.Column('waiting_query', db.String),
+    db.Column('waiting_query_secs', db.BigInteger),
+    db.Column('waiting_query_rows_affected', db.BigInteger),
+    db.Column('waiting_query_rows_examined', db.BigInteger),
+    db.Column('blocking_thread_id', db.BigInteger),
+    db.Column('blocking_pid', db.BigInteger),
+    db.Column('blocking_account', db.Text),
+    db.Column('blocking_lock_type', db.String(32)),
+    db.Column('blocking_lock_duration', db.String(32)),
+    db.Column('sql_kill_blocking_query', db.String(31)),
+    db.Column('sql_kill_blocking_connection', db.String(25))
+)
+
+
+
+t_schema_table_statistics = db.Table(
+    'schema_table_statistics',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('total_latency', db.String(11)),
+    db.Column('rows_fetched', db.BigInteger),
+    db.Column('fetch_latency', db.String(11)),
+    db.Column('rows_inserted', db.BigInteger),
+    db.Column('insert_latency', db.String(11)),
+    db.Column('rows_updated', db.BigInteger),
+    db.Column('update_latency', db.String(11)),
+    db.Column('rows_deleted', db.BigInteger),
+    db.Column('delete_latency', db.String(11)),
+    db.Column('io_read_requests', db.Numeric(42, 0)),
+    db.Column('io_read', db.String(11)),
+    db.Column('io_read_latency', db.String(11)),
+    db.Column('io_write_requests', db.Numeric(42, 0)),
+    db.Column('io_write', db.String(11)),
+    db.Column('io_write_latency', db.String(11)),
+    db.Column('io_misc_requests', db.Numeric(42, 0)),
+    db.Column('io_misc_latency', db.String(11))
+)
+
+
+
+t_schema_table_statistics_with_buffer = db.Table(
+    'schema_table_statistics_with_buffer',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('rows_fetched', db.BigInteger),
+    db.Column('fetch_latency', db.String(11)),
+    db.Column('rows_inserted', db.BigInteger),
+    db.Column('insert_latency', db.String(11)),
+    db.Column('rows_updated', db.BigInteger),
+    db.Column('update_latency', db.String(11)),
+    db.Column('rows_deleted', db.BigInteger),
+    db.Column('delete_latency', db.String(11)),
+    db.Column('io_read_requests', db.Numeric(42, 0)),
+    db.Column('io_read', db.String(11)),
+    db.Column('io_read_latency', db.String(11)),
+    db.Column('io_write_requests', db.Numeric(42, 0)),
+    db.Column('io_write', db.String(11)),
+    db.Column('io_write_latency', db.String(11)),
+    db.Column('io_misc_requests', db.Numeric(42, 0)),
+    db.Column('io_misc_latency', db.String(11)),
+    db.Column('innodb_buffer_allocated', db.String(11)),
+    db.Column('innodb_buffer_data', db.String(11)),
+    db.Column('innodb_buffer_free', db.String(11)),
+    db.Column('innodb_buffer_pages', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('innodb_buffer_pages_hashed', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('innodb_buffer_pages_old', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('innodb_buffer_rows_cached', db.Numeric(45, 0), server_default=db.FetchedValue())
+)
+
+
+
+t_schema_tables_with_full_table_scans = db.Table(
+    'schema_tables_with_full_table_scans',
+    db.Column('object_schema', db.String(64)),
+    db.Column('object_name', db.String(64)),
+    db.Column('rows_full_scanned', db.BigInteger),
+    db.Column('latency', db.String(11))
+)
+
+
+
+t_schema_unused_indexes = db.Table(
+    'schema_unused_indexes',
+    db.Column('object_schema', db.String(64)),
+    db.Column('object_name', db.String(64)),
+    db.Column('index_name', db.String(64))
+)
+
+
+
+t_session = db.Table(
+    'session',
+    db.Column('thd_id', db.BigInteger),
+    db.Column('conn_id', db.BigInteger),
+    db.Column('user', db.String(288)),
+    db.Column('db', db.String(64)),
+    db.Column('command', db.String(16)),
+    db.Column('state', db.String(64)),
+    db.Column('time', db.BigInteger),
+    db.Column('current_statement', db.String),
+    db.Column('statement_latency', db.String(11)),
+    db.Column('progress', db.Numeric(26, 2)),
+    db.Column('lock_latency', db.String(11)),
+    db.Column('cpu_latency', db.String(11)),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('tmp_tables', db.BigInteger),
+    db.Column('tmp_disk_tables', db.BigInteger),
+    db.Column('full_scan', db.String(3)),
+    db.Column('last_statement', db.String),
+    db.Column('last_statement_latency', db.String(11)),
+    db.Column('current_memory', db.String(11)),
+    db.Column('last_wait', db.String(128)),
+    db.Column('last_wait_latency', db.String(13)),
+    db.Column('source', db.String(64)),
+    db.Column('trx_latency', db.String(11)),
+    db.Column('trx_state', db.Enum('ACTIVE', 'COMMITTED', 'ROLLED BACK')),
+    db.Column('trx_autocommit', db.Enum('YES', 'NO')),
+    db.Column('pid', db.String(1024)),
+    db.Column('program_name', db.String(1024))
+)
+
+
+
+t_session_ssl_status = db.Table(
+    'session_ssl_status',
+    db.Column('thread_id', db.BigInteger),
+    db.Column('ssl_version', db.String(1024)),
+    db.Column('ssl_cipher', db.String(1024)),
+    db.Column('ssl_sessions_reused', db.String(1024))
+)
+
+
+
+t_statement_analysis = db.Table(
+    'statement_analysis',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('full_scan', db.String(1)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('err_count', db.BigInteger),
+    db.Column('warn_count', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('max_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('lock_latency', db.String(11)),
+    db.Column('cpu_latency', db.String(11)),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_sent_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_examined_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('rows_affected_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('tmp_tables', db.BigInteger),
+    db.Column('tmp_disk_tables', db.BigInteger),
+    db.Column('rows_sorted', db.BigInteger),
+    db.Column('sort_merge_passes', db.BigInteger),
+    db.Column('digest', db.String(64)),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime)
+)
+
+
+
+t_statements_with_errors_or_warnings = db.Table(
+    'statements_with_errors_or_warnings',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('errors', db.BigInteger),
+    db.Column('error_pct', db.Numeric(27, 4), server_default=db.FetchedValue()),
+    db.Column('warnings', db.BigInteger),
+    db.Column('warning_pct', db.Numeric(27, 4), server_default=db.FetchedValue()),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+t_statements_with_full_table_scans = db.Table(
+    'statements_with_full_table_scans',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('no_index_used_count', db.BigInteger),
+    db.Column('no_good_index_used_count', db.BigInteger),
+    db.Column('no_index_used_pct', db.Numeric(24, 0), server_default=db.FetchedValue()),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_sent_avg', db.Numeric(21, 0)),
+    db.Column('rows_examined_avg', db.Numeric(21, 0)),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+t_statements_with_runtimes_in_95th_percentile = db.Table(
+    'statements_with_runtimes_in_95th_percentile',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('full_scan', db.String(1)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('err_count', db.BigInteger),
+    db.Column('warn_count', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('max_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_sent_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_examined_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+t_statements_with_sorting = db.Table(
+    'statements_with_sorting',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('sort_merge_passes', db.BigInteger),
+    db.Column('avg_sort_merges', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('sorts_using_scans', db.BigInteger),
+    db.Column('sort_using_range', db.BigInteger),
+    db.Column('rows_sorted', db.BigInteger),
+    db.Column('avg_rows_sorted', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+t_statements_with_temp_tables = db.Table(
+    'statements_with_temp_tables',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('memory_tmp_tables', db.BigInteger),
+    db.Column('disk_tmp_tables', db.BigInteger),
+    db.Column('avg_tmp_tables_per_query', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('tmp_tables_to_disk_pct', db.Numeric(24, 0), server_default=db.FetchedValue()),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+class SysConfig(db.Model):
+    __tablename__ = 'sys_config'
+
+    variable = db.Column(db.String(128), primary_key=True)
+    value = db.Column(db.String(128))
+    set_time = db.Column(db.DateTime, server_default=db.FetchedValue())
+    set_by = db.Column(db.String(128))
+
+
+
+class UserInfo(db.Model):
+    __tablename__ = 'user_info'
+
+    user_uuid = db.Column(db.String(45), primary_key=True, server_default=db.FetchedValue())
+    git_nickname = db.Column(db.String(45), server_default=db.FetchedValue())
+
+
+
+t_user_summary = db.Table(
+    'user_summary',
+    db.Column('user', db.String(32)),
+    db.Column('statements', db.Numeric(64, 0)),
+    db.Column('statement_latency', db.String(11)),
+    db.Column('statement_avg_latency', db.String(11)),
+    db.Column('table_scans', db.Numeric(65, 0)),
+    db.Column('file_ios', db.Numeric(64, 0)),
+    db.Column('file_io_latency', db.String(11)),
+    db.Column('current_connections', db.Numeric(41, 0)),
+    db.Column('total_connections', db.Numeric(41, 0)),
+    db.Column('unique_hosts', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('current_memory', db.String(11)),
+    db.Column('total_memory_allocated', db.String(11))
+)
+
+
+
+t_user_summary_by_file_io = db.Table(
+    'user_summary_by_file_io',
+    db.Column('user', db.String(32)),
+    db.Column('ios', db.Numeric(42, 0)),
+    db.Column('io_latency', db.String(11))
+)
+
+
+
+t_user_summary_by_file_io_type = db.Table(
+    'user_summary_by_file_io_type',
+    db.Column('user', db.String(32)),
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('latency', db.String(11)),
+    db.Column('max_latency', db.String(11))
+)
+
+
+
+t_user_summary_by_stages = db.Table(
+    'user_summary_by_stages',
+    db.Column('user', db.String(32)),
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11))
+)
+
+
+
+t_user_summary_by_statement_latency = db.Table(
+    'user_summary_by_statement_latency',
+    db.Column('user', db.String(32)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.String(11)),
+    db.Column('max_latency', db.String(11)),
+    db.Column('lock_latency', db.String(11)),
+    db.Column('cpu_latency', db.String(11)),
+    db.Column('rows_sent', db.Numeric(42, 0)),
+    db.Column('rows_examined', db.Numeric(42, 0)),
+    db.Column('rows_affected', db.Numeric(42, 0)),
+    db.Column('full_scans', db.Numeric(43, 0))
+)
+
+
+
+t_user_summary_by_statement_type = db.Table(
+    'user_summary_by_statement_type',
+    db.Column('user', db.String(32)),
+    db.Column('statement', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('max_latency', db.String(11)),
+    db.Column('lock_latency', db.String(11)),
+    db.Column('cpu_latency', db.String(11)),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('full_scans', db.BigInteger, server_default=db.FetchedValue())
+)
+
+
+
+t_version = db.Table(
+    'version',
+    db.Column('sys_version', db.String(5)),
+    db.Column('mysql_version', db.String(6))
+)
+
+
+
+t_wait_classes_global_by_avg_latency = db.Table(
+    'wait_classes_global_by_avg_latency',
+    db.Column('event_class', db.String(128)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.String(11)),
+    db.Column('min_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('max_latency', db.String(11))
+)
+
+
+
+t_wait_classes_global_by_latency = db.Table(
+    'wait_classes_global_by_latency',
+    db.Column('event_class', db.String(128)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.String(11)),
+    db.Column('min_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('max_latency', db.String(11))
+)
+
+
+
+t_waits_by_host_by_latency = db.Table(
+    'waits_by_host_by_latency',
+    db.Column('host', db.String(255)),
+    db.Column('event', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('max_latency', db.String(11))
+)
+
+
+
+t_waits_by_user_by_latency = db.Table(
+    'waits_by_user_by_latency',
+    db.Column('user', db.String(32)),
+    db.Column('event', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('max_latency', db.String(11))
+)
+
+
+
+t_waits_global_by_latency = db.Table(
+    'waits_global_by_latency',
+    db.Column('events', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.String(11)),
+    db.Column('avg_latency', db.String(11)),
+    db.Column('max_latency', db.String(11))
+)
+
+
+
+t_x$host_summary = db.Table(
+    'x$host_summary',
+    db.Column('host', db.String(255)),
+    db.Column('statements', db.Numeric(64, 0)),
+    db.Column('statement_latency', db.Numeric(64, 0)),
+    db.Column('statement_avg_latency', db.Numeric(65, 4)),
+    db.Column('table_scans', db.Numeric(65, 0)),
+    db.Column('file_ios', db.Numeric(64, 0)),
+    db.Column('file_io_latency', db.Numeric(64, 0)),
+    db.Column('current_connections', db.Numeric(41, 0)),
+    db.Column('total_connections', db.Numeric(41, 0)),
+    db.Column('unique_users', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('current_memory', db.Numeric(63, 0)),
+    db.Column('total_memory_allocated', db.Numeric(64, 0))
+)
+
+
+
+t_x$host_summary_by_file_io = db.Table(
+    'x$host_summary_by_file_io',
+    db.Column('host', db.String(255)),
+    db.Column('ios', db.Numeric(42, 0)),
+    db.Column('io_latency', db.Numeric(42, 0))
+)
+
+
+
+t_x$host_summary_by_file_io_type = db.Table(
+    'x$host_summary_by_file_io_type',
+    db.Column('host', db.String(255)),
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger)
+)
+
+
+
+t_x$host_summary_by_stages = db.Table(
+    'x$host_summary_by_stages',
+    db.Column('host', db.String(255)),
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('avg_latency', db.BigInteger)
+)
+
+
+
+t_x$host_summary_by_statement_latency = db.Table(
+    'x$host_summary_by_statement_latency',
+    db.Column('host', db.String(255)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.Numeric(42, 0)),
+    db.Column('max_latency', db.BigInteger),
+    db.Column('lock_latency', db.Numeric(42, 0)),
+    db.Column('cpu_latency', db.Numeric(42, 0)),
+    db.Column('rows_sent', db.Numeric(42, 0)),
+    db.Column('rows_examined', db.Numeric(42, 0)),
+    db.Column('rows_affected', db.Numeric(42, 0)),
+    db.Column('full_scans', db.Numeric(43, 0))
+)
+
+
+
+t_x$host_summary_by_statement_type = db.Table(
+    'x$host_summary_by_statement_type',
+    db.Column('host', db.String(255)),
+    db.Column('statement', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger),
+    db.Column('lock_latency', db.BigInteger),
+    db.Column('cpu_latency', db.BigInteger),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('full_scans', db.BigInteger, server_default=db.FetchedValue())
+)
+
+
+
+t_x$innodb_buffer_stats_by_schema = db.Table(
+    'x$innodb_buffer_stats_by_schema',
+    db.Column('object_schema', db.Text),
+    db.Column('allocated', db.Numeric(44, 0)),
+    db.Column('data', db.Numeric(44, 0)),
+    db.Column('pages', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('pages_hashed', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('pages_old', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('rows_cached', db.Numeric(45, 0), server_default=db.FetchedValue())
+)
+
+
+
+t_x$innodb_buffer_stats_by_table = db.Table(
+    'x$innodb_buffer_stats_by_table',
+    db.Column('object_schema', db.Text),
+    db.Column('object_name', db.Text),
+    db.Column('allocated', db.Numeric(44, 0)),
+    db.Column('data', db.Numeric(44, 0)),
+    db.Column('pages', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('pages_hashed', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('pages_old', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('rows_cached', db.Numeric(45, 0), server_default=db.FetchedValue())
+)
+
+
+
+t_x$innodb_lock_waits = db.Table(
+    'x$innodb_lock_waits',
+    db.Column('wait_started', db.DateTime),
+    db.Column('wait_age', db.Time),
+    db.Column('wait_age_secs', db.BigInteger),
+    db.Column('locked_table', db.String),
+    db.Column('locked_table_schema', db.String(64)),
+    db.Column('locked_table_name', db.String(64)),
+    db.Column('locked_table_partition', db.String(64)),
+    db.Column('locked_table_subpartition', db.String(64)),
+    db.Column('locked_index', db.String(64)),
+    db.Column('locked_type', db.String(32)),
+    db.Column('waiting_trx_id', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('waiting_trx_started', db.DateTime, server_default=db.FetchedValue()),
+    db.Column('waiting_trx_age', db.Time),
+    db.Column('waiting_trx_rows_locked', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('waiting_trx_rows_modified', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('waiting_pid', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('waiting_query', db.String(1024)),
+    db.Column('waiting_lock_id', db.String(128)),
+    db.Column('waiting_lock_mode', db.String(32)),
+    db.Column('blocking_trx_id', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('blocking_pid', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('blocking_query', db.String(1024)),
+    db.Column('blocking_lock_id', db.String(128)),
+    db.Column('blocking_lock_mode', db.String(32)),
+    db.Column('blocking_trx_started', db.DateTime, server_default=db.FetchedValue()),
+    db.Column('blocking_trx_age', db.Time),
+    db.Column('blocking_trx_rows_locked', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('blocking_trx_rows_modified', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('sql_kill_blocking_query', db.String(33)),
+    db.Column('sql_kill_blocking_connection', db.String(27))
+)
+
+
+
+t_x$io_by_thread_by_latency = db.Table(
+    'x$io_by_thread_by_latency',
+    db.Column('user', db.String(288)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.Numeric(42, 0)),
+    db.Column('min_latency', db.BigInteger),
+    db.Column('avg_latency', db.Numeric(24, 4)),
+    db.Column('max_latency', db.BigInteger),
+    db.Column('thread_id', db.BigInteger),
+    db.Column('processlist_id', db.BigInteger)
+)
+
+
+
+t_x$io_global_by_file_by_bytes = db.Table(
+    'x$io_global_by_file_by_bytes',
+    db.Column('file', db.String(512)),
+    db.Column('count_read', db.BigInteger),
+    db.Column('total_read', db.BigInteger),
+    db.Column('avg_read', db.Numeric(23, 4), server_default=db.FetchedValue()),
+    db.Column('count_write', db.BigInteger),
+    db.Column('total_written', db.BigInteger),
+    db.Column('avg_write', db.Numeric(23, 4), server_default=db.FetchedValue()),
+    db.Column('total', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('write_pct', db.Numeric(26, 2), server_default=db.FetchedValue())
+)
+
+
+
+t_x$io_global_by_file_by_latency = db.Table(
+    'x$io_global_by_file_by_latency',
+    db.Column('file', db.String(512)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('count_read', db.BigInteger),
+    db.Column('read_latency', db.BigInteger),
+    db.Column('count_write', db.BigInteger),
+    db.Column('write_latency', db.BigInteger),
+    db.Column('count_misc', db.BigInteger),
+    db.Column('misc_latency', db.BigInteger)
+)
+
+
+
+t_x$io_global_by_wait_by_bytes = db.Table(
+    'x$io_global_by_wait_by_bytes',
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('min_latency', db.BigInteger),
+    db.Column('avg_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger),
+    db.Column('count_read', db.BigInteger),
+    db.Column('total_read', db.BigInteger),
+    db.Column('avg_read', db.Numeric(23, 4), server_default=db.FetchedValue()),
+    db.Column('count_write', db.BigInteger),
+    db.Column('total_written', db.BigInteger),
+    db.Column('avg_written', db.Numeric(23, 4), server_default=db.FetchedValue()),
+    db.Column('total_requested', db.BigInteger, server_default=db.FetchedValue())
+)
+
+
+
+t_x$io_global_by_wait_by_latency = db.Table(
+    'x$io_global_by_wait_by_latency',
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('avg_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger),
+    db.Column('read_latency', db.BigInteger),
+    db.Column('write_latency', db.BigInteger),
+    db.Column('misc_latency', db.BigInteger),
+    db.Column('count_read', db.BigInteger),
+    db.Column('total_read', db.BigInteger),
+    db.Column('avg_read', db.Numeric(23, 4), server_default=db.FetchedValue()),
+    db.Column('count_write', db.BigInteger),
+    db.Column('total_written', db.BigInteger),
+    db.Column('avg_written', db.Numeric(23, 4), server_default=db.FetchedValue())
+)
+
+
+
+t_x$latest_file_io = db.Table(
+    'x$latest_file_io',
+    db.Column('thread', db.String(317)),
+    db.Column('file', db.String(512)),
+    db.Column('latency', db.BigInteger),
+    db.Column('operation', db.String(32)),
+    db.Column('requested', db.BigInteger)
+)
+
+
+
+t_x$memory_by_host_by_current_bytes = db.Table(
+    'x$memory_by_host_by_current_bytes',
+    db.Column('host', db.String(255)),
+    db.Column('current_count_used', db.Numeric(41, 0)),
+    db.Column('current_allocated', db.Numeric(41, 0)),
+    db.Column('current_avg_alloc', db.Numeric(45, 4), server_default=db.FetchedValue()),
+    db.Column('current_max_alloc', db.BigInteger),
+    db.Column('total_allocated', db.Numeric(42, 0))
+)
+
+
+
+t_x$memory_by_thread_by_current_bytes = db.Table(
+    'x$memory_by_thread_by_current_bytes',
+    db.Column('thread_id', db.BigInteger),
+    db.Column('user', db.String(288)),
+    db.Column('current_count_used', db.Numeric(41, 0)),
+    db.Column('current_allocated', db.Numeric(41, 0)),
+    db.Column('current_avg_alloc', db.Numeric(45, 4), server_default=db.FetchedValue()),
+    db.Column('current_max_alloc', db.BigInteger),
+    db.Column('total_allocated', db.Numeric(42, 0))
+)
+
+
+
+t_x$memory_by_user_by_current_bytes = db.Table(
+    'x$memory_by_user_by_current_bytes',
+    db.Column('user', db.String(32)),
+    db.Column('current_count_used', db.Numeric(41, 0)),
+    db.Column('current_allocated', db.Numeric(41, 0)),
+    db.Column('current_avg_alloc', db.Numeric(45, 4), server_default=db.FetchedValue()),
+    db.Column('current_max_alloc', db.BigInteger),
+    db.Column('total_allocated', db.Numeric(42, 0))
+)
+
+
+
+t_x$memory_global_by_current_bytes = db.Table(
+    'x$memory_global_by_current_bytes',
+    db.Column('event_name', db.String(128)),
+    db.Column('current_count', db.BigInteger),
+    db.Column('current_alloc', db.BigInteger),
+    db.Column('current_avg_alloc', db.Numeric(23, 4), server_default=db.FetchedValue()),
+    db.Column('high_count', db.BigInteger),
+    db.Column('high_alloc', db.BigInteger),
+    db.Column('high_avg_alloc', db.Numeric(23, 4), server_default=db.FetchedValue())
+)
+
+
+
+t_x$memory_global_total = db.Table(
+    'x$memory_global_total',
+    db.Column('total_allocated', db.Numeric(41, 0))
+)
+
+
+
+t_x$processlist = db.Table(
+    'x$processlist',
+    db.Column('thd_id', db.BigInteger),
+    db.Column('conn_id', db.BigInteger),
+    db.Column('user', db.String(288)),
+    db.Column('db', db.String(64)),
+    db.Column('command', db.String(16)),
+    db.Column('state', db.String(64)),
+    db.Column('time', db.BigInteger),
+    db.Column('current_statement', db.String),
+    db.Column('statement_latency', db.BigInteger),
+    db.Column('progress', db.Numeric(26, 2)),
+    db.Column('lock_latency', db.BigInteger),
+    db.Column('cpu_latency', db.BigInteger),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('tmp_tables', db.BigInteger),
+    db.Column('tmp_disk_tables', db.BigInteger),
+    db.Column('full_scan', db.String(3)),
+    db.Column('last_statement', db.String),
+    db.Column('last_statement_latency', db.BigInteger),
+    db.Column('current_memory', db.Numeric(41, 0)),
+    db.Column('last_wait', db.String(128)),
+    db.Column('last_wait_latency', db.String(20)),
+    db.Column('source', db.String(64)),
+    db.Column('trx_latency', db.BigInteger),
+    db.Column('trx_state', db.Enum('ACTIVE', 'COMMITTED', 'ROLLED BACK')),
+    db.Column('trx_autocommit', db.Enum('YES', 'NO')),
+    db.Column('pid', db.String(1024)),
+    db.Column('program_name', db.String(1024))
+)
+
+
+
+t_x$ps_digest_95th_percentile_by_avg_us = db.Table(
+    'x$ps_digest_95th_percentile_by_avg_us',
+    db.Column('avg_us', db.Numeric(21, 0)),
+    db.Column('percentile', db.Numeric(46, 4), server_default=db.FetchedValue())
+)
+
+
+
+t_x$ps_digest_avg_latency_distribution = db.Table(
+    'x$ps_digest_avg_latency_distribution',
+    db.Column('cnt', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('avg_us', db.Numeric(21, 0))
+)
+
+
+
+t_x$ps_schema_table_statistics_io = db.Table(
+    'x$ps_schema_table_statistics_io',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('count_read', db.Numeric(42, 0)),
+    db.Column('sum_number_of_bytes_read', db.Numeric(41, 0)),
+    db.Column('sum_timer_read', db.Numeric(42, 0)),
+    db.Column('count_write', db.Numeric(42, 0)),
+    db.Column('sum_number_of_bytes_write', db.Numeric(41, 0)),
+    db.Column('sum_timer_write', db.Numeric(42, 0)),
+    db.Column('count_misc', db.Numeric(42, 0)),
+    db.Column('sum_timer_misc', db.Numeric(42, 0))
+)
+
+
+
+t_x$schema_flattened_keys = db.Table(
+    'x$schema_flattened_keys',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('index_name', db.String(64)),
+    db.Column('non_unique', db.Integer),
+    db.Column('subpart_exists', db.BigInteger),
+    db.Column('index_columns', db.Text)
+)
+
+
+
+t_x$schema_index_statistics = db.Table(
+    'x$schema_index_statistics',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('index_name', db.String(64)),
+    db.Column('rows_selected', db.BigInteger),
+    db.Column('select_latency', db.BigInteger),
+    db.Column('rows_inserted', db.BigInteger),
+    db.Column('insert_latency', db.BigInteger),
+    db.Column('rows_updated', db.BigInteger),
+    db.Column('update_latency', db.BigInteger),
+    db.Column('rows_deleted', db.BigInteger),
+    db.Column('delete_latency', db.BigInteger)
+)
+
+
+
+t_x$schema_table_lock_waits = db.Table(
+    'x$schema_table_lock_waits',
+    db.Column('object_schema', db.String(64)),
+    db.Column('object_name', db.String(64)),
+    db.Column('waiting_thread_id', db.BigInteger),
+    db.Column('waiting_pid', db.BigInteger),
+    db.Column('waiting_account', db.Text),
+    db.Column('waiting_lock_type', db.String(32)),
+    db.Column('waiting_lock_duration', db.String(32)),
+    db.Column('waiting_query', db.String),
+    db.Column('waiting_query_secs', db.BigInteger),
+    db.Column('waiting_query_rows_affected', db.BigInteger),
+    db.Column('waiting_query_rows_examined', db.BigInteger),
+    db.Column('blocking_thread_id', db.BigInteger),
+    db.Column('blocking_pid', db.BigInteger),
+    db.Column('blocking_account', db.Text),
+    db.Column('blocking_lock_type', db.String(32)),
+    db.Column('blocking_lock_duration', db.String(32)),
+    db.Column('sql_kill_blocking_query', db.String(31)),
+    db.Column('sql_kill_blocking_connection', db.String(25))
+)
+
+
+
+t_x$schema_table_statistics = db.Table(
+    'x$schema_table_statistics',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('rows_fetched', db.BigInteger),
+    db.Column('fetch_latency', db.BigInteger),
+    db.Column('rows_inserted', db.BigInteger),
+    db.Column('insert_latency', db.BigInteger),
+    db.Column('rows_updated', db.BigInteger),
+    db.Column('update_latency', db.BigInteger),
+    db.Column('rows_deleted', db.BigInteger),
+    db.Column('delete_latency', db.BigInteger),
+    db.Column('io_read_requests', db.Numeric(42, 0)),
+    db.Column('io_read', db.Numeric(41, 0)),
+    db.Column('io_read_latency', db.Numeric(42, 0)),
+    db.Column('io_write_requests', db.Numeric(42, 0)),
+    db.Column('io_write', db.Numeric(41, 0)),
+    db.Column('io_write_latency', db.Numeric(42, 0)),
+    db.Column('io_misc_requests', db.Numeric(42, 0)),
+    db.Column('io_misc_latency', db.Numeric(42, 0))
+)
+
+
+
+t_x$schema_table_statistics_with_buffer = db.Table(
+    'x$schema_table_statistics_with_buffer',
+    db.Column('table_schema', db.String(64)),
+    db.Column('table_name', db.String(64)),
+    db.Column('rows_fetched', db.BigInteger),
+    db.Column('fetch_latency', db.BigInteger),
+    db.Column('rows_inserted', db.BigInteger),
+    db.Column('insert_latency', db.BigInteger),
+    db.Column('rows_updated', db.BigInteger),
+    db.Column('update_latency', db.BigInteger),
+    db.Column('rows_deleted', db.BigInteger),
+    db.Column('delete_latency', db.BigInteger),
+    db.Column('io_read_requests', db.Numeric(42, 0)),
+    db.Column('io_read', db.Numeric(41, 0)),
+    db.Column('io_read_latency', db.Numeric(42, 0)),
+    db.Column('io_write_requests', db.Numeric(42, 0)),
+    db.Column('io_write', db.Numeric(41, 0)),
+    db.Column('io_write_latency', db.Numeric(42, 0)),
+    db.Column('io_misc_requests', db.Numeric(42, 0)),
+    db.Column('io_misc_latency', db.Numeric(42, 0)),
+    db.Column('innodb_buffer_allocated', db.Numeric(44, 0)),
+    db.Column('innodb_buffer_data', db.Numeric(44, 0)),
+    db.Column('innodb_buffer_free', db.Numeric(45, 0)),
+    db.Column('innodb_buffer_pages', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('innodb_buffer_pages_hashed', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('innodb_buffer_pages_old', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('innodb_buffer_rows_cached', db.Numeric(45, 0), server_default=db.FetchedValue())
+)
+
+
+
+t_x$schema_tables_with_full_table_scans = db.Table(
+    'x$schema_tables_with_full_table_scans',
+    db.Column('object_schema', db.String(64)),
+    db.Column('object_name', db.String(64)),
+    db.Column('rows_full_scanned', db.BigInteger),
+    db.Column('latency', db.BigInteger)
+)
+
+
+
+t_x$session = db.Table(
+    'x$session',
+    db.Column('thd_id', db.BigInteger),
+    db.Column('conn_id', db.BigInteger),
+    db.Column('user', db.String(288)),
+    db.Column('db', db.String(64)),
+    db.Column('command', db.String(16)),
+    db.Column('state', db.String(64)),
+    db.Column('time', db.BigInteger),
+    db.Column('current_statement', db.String),
+    db.Column('statement_latency', db.BigInteger),
+    db.Column('progress', db.Numeric(26, 2)),
+    db.Column('lock_latency', db.BigInteger),
+    db.Column('cpu_latency', db.BigInteger),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('tmp_tables', db.BigInteger),
+    db.Column('tmp_disk_tables', db.BigInteger),
+    db.Column('full_scan', db.String(3)),
+    db.Column('last_statement', db.String),
+    db.Column('last_statement_latency', db.BigInteger),
+    db.Column('current_memory', db.Numeric(41, 0)),
+    db.Column('last_wait', db.String(128)),
+    db.Column('last_wait_latency', db.String(20)),
+    db.Column('source', db.String(64)),
+    db.Column('trx_latency', db.BigInteger),
+    db.Column('trx_state', db.Enum('ACTIVE', 'COMMITTED', 'ROLLED BACK')),
+    db.Column('trx_autocommit', db.Enum('YES', 'NO')),
+    db.Column('pid', db.String(1024)),
+    db.Column('program_name', db.String(1024))
+)
+
+
+
+t_x$statement_analysis = db.Table(
+    'x$statement_analysis',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('full_scan', db.String(1)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('err_count', db.BigInteger),
+    db.Column('warn_count', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger),
+    db.Column('avg_latency', db.BigInteger),
+    db.Column('lock_latency', db.BigInteger),
+    db.Column('cpu_latency', db.BigInteger),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_sent_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_examined_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('rows_affected_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('tmp_tables', db.BigInteger),
+    db.Column('tmp_disk_tables', db.BigInteger),
+    db.Column('rows_sorted', db.BigInteger),
+    db.Column('sort_merge_passes', db.BigInteger),
+    db.Column('digest', db.String(64)),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime)
+)
+
+
+
+t_x$statements_with_errors_or_warnings = db.Table(
+    'x$statements_with_errors_or_warnings',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('errors', db.BigInteger),
+    db.Column('error_pct', db.Numeric(27, 4), server_default=db.FetchedValue()),
+    db.Column('warnings', db.BigInteger),
+    db.Column('warning_pct', db.Numeric(27, 4), server_default=db.FetchedValue()),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+t_x$statements_with_full_table_scans = db.Table(
+    'x$statements_with_full_table_scans',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('no_index_used_count', db.BigInteger),
+    db.Column('no_good_index_used_count', db.BigInteger),
+    db.Column('no_index_used_pct', db.Numeric(24, 0), server_default=db.FetchedValue()),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_sent_avg', db.Numeric(21, 0)),
+    db.Column('rows_examined_avg', db.Numeric(21, 0)),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+t_x$statements_with_runtimes_in_95th_percentile = db.Table(
+    'x$statements_with_runtimes_in_95th_percentile',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('full_scan', db.String(1)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('err_count', db.BigInteger),
+    db.Column('warn_count', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger),
+    db.Column('avg_latency', db.BigInteger),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_sent_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_examined_avg', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+t_x$statements_with_sorting = db.Table(
+    'x$statements_with_sorting',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('sort_merge_passes', db.BigInteger),
+    db.Column('avg_sort_merges', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('sorts_using_scans', db.BigInteger),
+    db.Column('sort_using_range', db.BigInteger),
+    db.Column('rows_sorted', db.BigInteger),
+    db.Column('avg_rows_sorted', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+t_x$statements_with_temp_tables = db.Table(
+    'x$statements_with_temp_tables',
+    db.Column('query', db.String),
+    db.Column('db', db.String(64)),
+    db.Column('exec_count', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('memory_tmp_tables', db.BigInteger),
+    db.Column('disk_tmp_tables', db.BigInteger),
+    db.Column('avg_tmp_tables_per_query', db.Numeric(21, 0), server_default=db.FetchedValue()),
+    db.Column('tmp_tables_to_disk_pct', db.Numeric(24, 0), server_default=db.FetchedValue()),
+    db.Column('first_seen', db.DateTime),
+    db.Column('last_seen', db.DateTime),
+    db.Column('digest', db.String(64))
+)
+
+
+
+t_x$user_summary = db.Table(
+    'x$user_summary',
+    db.Column('user', db.String(32)),
+    db.Column('statements', db.Numeric(64, 0)),
+    db.Column('statement_latency', db.Numeric(64, 0)),
+    db.Column('statement_avg_latency', db.Numeric(65, 4), server_default=db.FetchedValue()),
+    db.Column('table_scans', db.Numeric(65, 0)),
+    db.Column('file_ios', db.Numeric(64, 0)),
+    db.Column('file_io_latency', db.Numeric(64, 0)),
+    db.Column('current_connections', db.Numeric(41, 0)),
+    db.Column('total_connections', db.Numeric(41, 0)),
+    db.Column('unique_hosts', db.BigInteger, server_default=db.FetchedValue()),
+    db.Column('current_memory', db.Numeric(63, 0)),
+    db.Column('total_memory_allocated', db.Numeric(64, 0))
+)
+
+
+
+t_x$user_summary_by_file_io = db.Table(
+    'x$user_summary_by_file_io',
+    db.Column('user', db.String(32)),
+    db.Column('ios', db.Numeric(42, 0)),
+    db.Column('io_latency', db.Numeric(42, 0))
+)
+
+
+
+t_x$user_summary_by_file_io_type = db.Table(
+    'x$user_summary_by_file_io_type',
+    db.Column('user', db.String(32)),
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger)
+)
+
+
+
+t_x$user_summary_by_stages = db.Table(
+    'x$user_summary_by_stages',
+    db.Column('user', db.String(32)),
+    db.Column('event_name', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('avg_latency', db.BigInteger)
+)
+
+
+
+t_x$user_summary_by_statement_latency = db.Table(
+    'x$user_summary_by_statement_latency',
+    db.Column('user', db.String(32)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.Numeric(42, 0)),
+    db.Column('max_latency', db.Numeric(42, 0)),
+    db.Column('lock_latency', db.Numeric(42, 0)),
+    db.Column('cpu_latency', db.Numeric(42, 0)),
+    db.Column('rows_sent', db.Numeric(42, 0)),
+    db.Column('rows_examined', db.Numeric(42, 0)),
+    db.Column('rows_affected', db.Numeric(42, 0)),
+    db.Column('full_scans', db.Numeric(43, 0))
+)
+
+
+
+t_x$user_summary_by_statement_type = db.Table(
+    'x$user_summary_by_statement_type',
+    db.Column('user', db.String(32)),
+    db.Column('statement', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger),
+    db.Column('lock_latency', db.BigInteger),
+    db.Column('cpu_latency', db.BigInteger),
+    db.Column('rows_sent', db.BigInteger),
+    db.Column('rows_examined', db.BigInteger),
+    db.Column('rows_affected', db.BigInteger),
+    db.Column('full_scans', db.BigInteger, server_default=db.FetchedValue())
+)
+
+
+
+t_x$wait_classes_global_by_avg_latency = db.Table(
+    'x$wait_classes_global_by_avg_latency',
+    db.Column('event_class', db.String(128)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.Numeric(42, 0)),
+    db.Column('min_latency', db.BigInteger),
+    db.Column('avg_latency', db.Numeric(46, 4), server_default=db.FetchedValue()),
+    db.Column('max_latency', db.BigInteger)
+)
+
+
+
+t_x$wait_classes_global_by_latency = db.Table(
+    'x$wait_classes_global_by_latency',
+    db.Column('event_class', db.String(128)),
+    db.Column('total', db.Numeric(42, 0)),
+    db.Column('total_latency', db.Numeric(42, 0)),
+    db.Column('min_latency', db.BigInteger),
+    db.Column('avg_latency', db.Numeric(46, 4), server_default=db.FetchedValue()),
+    db.Column('max_latency', db.BigInteger)
+)
+
+
+
+t_x$waits_by_host_by_latency = db.Table(
+    'x$waits_by_host_by_latency',
+    db.Column('host', db.String(255)),
+    db.Column('event', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('avg_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger)
+)
+
+
+
+t_x$waits_by_user_by_latency = db.Table(
+    'x$waits_by_user_by_latency',
+    db.Column('user', db.String(32)),
+    db.Column('event', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('avg_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger)
+)
+
+
+
+t_x$waits_global_by_latency = db.Table(
+    'x$waits_global_by_latency',
+    db.Column('events', db.String(128)),
+    db.Column('total', db.BigInteger),
+    db.Column('total_latency', db.BigInteger),
+    db.Column('avg_latency', db.BigInteger),
+    db.Column('max_latency', db.BigInteger)
+)

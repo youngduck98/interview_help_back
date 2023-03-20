@@ -1,21 +1,14 @@
-from flask import Flask, request
+def parse_statment(s):
+    ret1 = s.split("\n")
+    while len(ret1) != 0 and ret1[0] == '':
+        del ret1[0]
+    for i in range(len(ret1)):
+        if '. ' in ret1[i]:
+            ret1[i] = ret1[i].split('. ')[1]
+    return ret1
+s = "\n\n1. Attention 메커니즘이 어떻게 자연어 처리 작업에 사용되는지?\n" + \
+"2. Attention 메커니즘은 어떤 기능을 가지고 있는가?\n" + \
+"3. Attention 메커니즘을 사용하면 어떤 이점이 있는가?"
 
-app = Flask(__name__) # app assignment
-
-@app.route('/')
-def main_page_mesg():
-    return "this is capstone main page\n"
-
-@app.route('/today_question') #get echo api
-def get_echo_call():
-    today_list = "today_question"
-    return today_list
-
-@app.route('/user_interest_list', methods=['POST']) #test api
-def user_interest_list():
-    param = request.get_json()
-    print(param)
-    return jsonify(param)
-
-if __name__ == "__main__":
-    app.run(host = "0.0.0.0")
+s = parse_statment(s)
+print(s)

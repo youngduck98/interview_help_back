@@ -1,10 +1,18 @@
 import sys, os
 from flask import Flask, request, jsonify
+
+from datetime import datetime
+import pytz
+
 import config
 from database.db_connect import db
 from database import module
 from flask_restx import Resource, Api
 from user_route import user_path
+
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
+from database.module import User, Achievement, Attendance, CommonQue, IndividualQue, InterviewLog, InterviewQuestion, ItemSelfIntroduction, MockInterview, SynthesisSelfIntroduction
 
 app = Flask(__name__) # app assignment
 app.config.from_object(config) # app setting config through config object(related to DB)
@@ -12,6 +20,39 @@ db.init_app(app)
 app.register_blueprint(user_path.user_ab, url_prefix='/user')
 
 api = Api(app) # api that make restapi more easier
+
+# blueprint name에 기본적으로 user가 있다길래 그거 없애기 위한 것
+# 이후 만약 문제 생기면 밑에 admin.add_view(ModelView(User, db.session))와 함께 지우면 됨
+# ----------------------------------
+user_blueprint = None
+for bp in app.blueprints.values():
+    if bp.name == 'user':
+        user_blueprint = bp
+        break
+
+if user_blueprint:
+    app.blueprints.pop(user_blueprint.name)
+# ----------------------------------
+
+# set flask_admin
+admin = Admin(app, name='InterviewM@ster', template_mode='bootstrap3')
+admin.add_view(ModelView(User, db.session))
+admin.add_view(ModelView(SynthesisSelfIntroduction, db.session))
+admin.add_view(ModelView(ItemSelfIntroduction, db.session))
+admin.add_view(ModelView(CommonQue, db.session))
+admin.add_view(ModelView(IndividualQue, db.session))
+admin.add_view(ModelView(Attendance, db.session))
+# admin.add_view(ModelView(TodayQue, db.session))
+admin.add_view(ModelView(MockInterview, db.session))
+admin.add_view(ModelView(InterviewLog, db.session))
+admin.add_view(ModelView(Achievement, db.session))
+admin.add_view(ModelView(InterviewQuestion, db.session))
+
+"""
+"\n\n1. Attention 메커니즘이 어떻게 자연어 처리 작업에 사용되는지?
+\n2. Attention 메커니즘은 어떤 기능을 가지고 있는가?
+\n3. Attention 메커니즘을 사용하면 어떤 이점이 있는가?"
+"""
 
 @api.route('/test/<string:uuid>')
 class test(Resource):
@@ -62,12 +103,8 @@ class user(Resource):
             return 0
         return 1
     def post(self, uuid):
-        new_git_nickname = request.get_json()['git_nickname']
-        raw_interesting_list = request.get_json()['interesting_field']
+        new_git_nickname = ""
         new_interesting_field = ""
-        for interest_subject in raw_interesting_list:
-            new_interesting_field += interest_subject + ','
-        new_interesting_field = new_interesting_field[0:-1]
         new_user = module.User(uuid, new_git_nickname, new_interesting_field)
         try:
             db.session.add(new_user)

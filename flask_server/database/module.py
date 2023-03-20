@@ -1,4 +1,7 @@
+# coding: utf-8
+from flask_sqlalchemy import SQLAlchemy
 from .db_connect import db
+from datetime import datetime
 
 class user_info_table(db.Model):
     __tablename__ = "user_info"
@@ -30,10 +33,8 @@ class Attendance(db.Model):
     user_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
     att_point = db.Column(db.Integer)
     att_continuity = db.Column(db.Integer)
-    att_date = db.Column(db.BigInteger)
-    att_question = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), index=True)
+    att_date = db.Column(db.DateTime)
 
-    IndividualQue = db.relationship('IndividualQue', primaryjoin='Attendance.att_question == IndividualQue.ques_uuid', backref='attendances')
     User = db.relationship('User', primaryjoin='Attendance.user_uuid == User.user_uuid', backref='attendances')
 
 
@@ -64,7 +65,7 @@ class InterviewLog(db.Model):
 
     log_uuid = db.Column(db.String(36), primary_key=True)
     inter_ques_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), index=True)
-    log_date = db.Column(db.BigInteger)
+    log_date = db.Column(db.DateTime)
     log_content = db.Column(db.String(1000))
     log_type = db.Column(db.Integer)
     log_progress = db.Column(db.Integer)
@@ -77,14 +78,14 @@ class InterviewQuestion(db.Model):
     __tablename__ = 'InterviewQuestion'
 
     inter_ques_uuid = db.Column(db.String(36), primary_key=True)
-    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), db.ForeignKey('IndividualQues.ques_uuid'), index=True)
+    interview_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), db.ForeignKey('MockInterview.interview_uuid'), index=True)
     common_question_uuid = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
     indiv_ques_uuid = db.Column(db.String(36))
     type = db.Column(db.Integer)
 
     CommonQue = db.relationship('CommonQue', primaryjoin='InterviewQuestion.common_question_uuid == CommonQue.ques_uuid', backref='interview_questions')
-    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuestion.interview_uuid == IndividualQue.ques_uuid', backref='interview_questions')
     MockInterview = db.relationship('MockInterview', primaryjoin='InterviewQuestion.interview_uuid == MockInterview.interview_uuid', backref='interview_questions')
+    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuestion.interview_uuid == IndividualQue.ques_uuid', backref='interview_questions')
 
 
 
@@ -107,7 +108,7 @@ class MockInterview(db.Model):
     interview_host_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
     score = db.Column(db.Integer)
     referenced_script = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), index=True)
-    end_time = db.Column(db.BigInteger)
+    end_time = db.Column(db.DateTime)
     self_memo = db.Column(db.String(5000))
 
     User = db.relationship('User', primaryjoin='MockInterview.interview_host_uuid == User.user_uuid', backref='mock_interviews')
@@ -120,10 +121,24 @@ class SynthesisSelfIntroduction(db.Model):
 
     script_uuid = db.Column(db.String(36), primary_key=True)
     script_host = db.Column(db.ForeignKey('User.user_uuid'), index=True)
-    script_date = db.Column(db.BigInteger)
+    script_date = db.Column(db.DateTime)
     script_name = db.Column(db.String(200))
 
     User = db.relationship('User', primaryjoin='SynthesisSelfIntroduction.script_host == User.user_uuid', backref='synthesis_self_introductions')
+
+
+
+class TodayQue(db.Model):
+    __tablename__ = 'TodayQues'
+
+    tq_uuid = db.Column(db.String(36), primary_key=True)
+    user_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
+    today_ques = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
+    user_memo = db.Column(db.String(800))
+    date = db.Column(db.DateTime)
+
+    CommonQue = db.relationship('CommonQue', primaryjoin='TodayQue.today_ques == CommonQue.ques_uuid', backref='today_ques')
+    User = db.relationship('User', primaryjoin='TodayQue.user_uuid == User.user_uuid', backref='today_ques')
 
 
 
@@ -133,8 +148,12 @@ class User(db.Model):
     user_uuid = db.Column(db.String(36), primary_key=True)
     git_nickname = db.Column(db.String(200))
     interesting_field = db.Column(db.String(1000))
+    name = db.Column(db.String(100))
+    email = db.Column(db.String(200))
 
-    def __init__(self, user_uuid, git_nickname, interesting_field):
+    def __init__(self, user_uuid, git_nickname, interesting_field, name, email):
         self.user_uuid = user_uuid
         self.git_nickname = git_nickname
         self.interesting_field = interesting_field
+        self.name = name
+        
