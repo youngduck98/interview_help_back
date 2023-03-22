@@ -151,9 +151,10 @@ class User(db.Model):
     name = db.Column(db.String(100))
     email = db.Column(db.String(200))
 
-    def __init__(self, user_uuid, git_nickname, interesting_field, name, email):
+    def __init__(self, user_uuid, git_nickname="", interesting_field="", name="", email=""):
         self.user_uuid = user_uuid
         self.git_nickname = git_nickname
         self.interesting_field = interesting_field
         self.name = name
+        self.email = email
         
