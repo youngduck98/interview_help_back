@@ -48,12 +48,6 @@ admin.add_view(ModelView(InterviewLog, db.session))
 admin.add_view(ModelView(Achievement, db.session))
 admin.add_view(ModelView(InterviewQuestion, db.session))
 
-"""
-"\n\n1. Attention 메커니즘이 어떻게 자연어 처리 작업에 사용되는지?
-\n2. Attention 메커니즘은 어떤 기능을 가지고 있는가?
-\n3. Attention 메커니즘을 사용하면 어떤 이점이 있는가?"
-"""
-
 @api.route('/test/<string:uuid>')
 class test(Resource):
     def get(self, uuid):
@@ -120,6 +114,16 @@ class user(Resource):
         except:
             return 0
         return 1
+
+@api.route('/gpttest/<string:uuid>')
+class gpttest(Resource):
+    def get(self, uuid):
+        try:
+            uuid = module.ItemSelfIntroduction.query.filter_by(script_item_uuid = uuid).first()
+        except:
+            return 0
+        
+        return uuid
 
 if __name__ == "__main__":
     app.run(host = "0.0.0.0")

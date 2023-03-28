@@ -4,6 +4,7 @@ from database.db_connect import db
 from database import module
 from datetime import datetime
 import pytz
+import uuid
 
 user_ab = Blueprint('user', __name__)
 api = Api(user_ab) # api that make restapi more easier
@@ -24,10 +25,23 @@ class date(Resource):
         ret = turn_datetime_to_longint(now)
         return ret
 
-@api.route('/attendance/<string:uuid>')
+@api.route('/attendance/<string:uuid2>')
 class attendance(Resource):
-    def post(self, uuid):
-        new_attd = module.Attendance()
+    def post(self, uuid2):
+        #(self, att_uuid, user_uuid, att_continuity, att_date):
+        new_att_uuid = uuid.uuid1()
+        att_continuity = 0
+        new_att_date = datetime.now(pytz.timezone('Asia/Seoul'))
+        
+        befo_att = module.User.query.filter_by(user_uuid=uuid2).first()
+        
+        try:
+            new_attd = module.Attendance(new_att_uuid, uuid2, att_continuity, new_att_date)
+            db.session.add(new_attd)
+            db.session.commit()
+        except:
+            return 0
+        return 1
 
 default_interest_list = ['os', 'database', 'server', 'c++', 'java', 'python']
 
@@ -60,14 +74,6 @@ class interest_list(Resource):
             return 0
         return 1
     def delete(self, uuid):
-        try:
-            user = module.User.query.filter_by(user_uuid=uuid).first()
-            user.interesting_field = ""
-            db.session.commit()
-        except:
-            return 0
-        return 1
-
         try:
             user = module.User.query.filter_by(user_uuid=uuid).first()
             user.interesting_field = ""

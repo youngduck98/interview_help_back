@@ -3,21 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 from .db_connect import db
 from datetime import datetime
 
-class user_info_table(db.Model):
-    __tablename__ = "user_info"
-
-    user_uuid = db.Column(db.Integer, primary_key=True)
-    git_nickname = db.Column(db.String(45))
-
-    def __init__(self, user_uuid, git_nickname):
-        self.user_uuid = user_uuid
-        self.git_nickname = git_nickname
-
 class Achievement(db.Model):
     __tablename__ = 'Achievement'
 
     achi_uuid = db.Column(db.String(36), primary_key=True)
-    host_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
+    host_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
     achi_type = db.Column(db.Integer)
     achi_text = db.Column(db.String(200))
     date = db.Column(db.BigInteger)
@@ -31,12 +21,16 @@ class Attendance(db.Model):
 
     att_uuid = db.Column(db.String(36), primary_key=True)
     user_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
-    att_point = db.Column(db.Integer)
     att_continuity = db.Column(db.Integer)
     att_date = db.Column(db.DateTime)
 
     User = db.relationship('User', primaryjoin='Attendance.user_uuid == User.user_uuid', backref='attendances')
-
+    
+    def __init__(self, att_uuid, user_uuid, att_continuity, att_date):
+        self.att_uuid = att_uuid
+        self.user_uuid = user_uuid
+        self.att_continuity = att_continuity
+        self.att_date = att_date
 
 
 class CommonQue(db.Model):
@@ -52,8 +46,8 @@ class IndividualQue(db.Model):
     __tablename__ = 'IndividualQues'
 
     ques_uuid = db.Column(db.String(36), primary_key=True)
-    user_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
-    script_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), index=True)
+    user_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
+    script_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), nullable=False, index=True)
 
     SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='IndividualQue.script_uuid == SynthesisSelfIntroduction.script_uuid', backref='individual_ques')
     User = db.relationship('User', primaryjoin='IndividualQue.user_uuid == User.user_uuid', backref='individual_ques')
@@ -78,14 +72,13 @@ class InterviewQuestion(db.Model):
     __tablename__ = 'InterviewQuestion'
 
     inter_ques_uuid = db.Column(db.String(36), primary_key=True)
-    interview_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), db.ForeignKey('MockInterview.interview_uuid'), index=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), index=True)
     common_question_uuid = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
     indiv_ques_uuid = db.Column(db.String(36))
     type = db.Column(db.Integer)
 
     CommonQue = db.relationship('CommonQue', primaryjoin='InterviewQuestion.common_question_uuid == CommonQue.ques_uuid', backref='interview_questions')
     MockInterview = db.relationship('MockInterview', primaryjoin='InterviewQuestion.interview_uuid == MockInterview.interview_uuid', backref='interview_questions')
-    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuestion.interview_uuid == IndividualQue.ques_uuid', backref='interview_questions')
 
 
 
@@ -94,6 +87,7 @@ class ItemSelfIntroduction(db.Model):
 
     script_item_uuid = db.Column(db.String(36), primary_key=True)
     script_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), index=True)
+    question = db.Column(db.String(1000))
     contents = db.Column(db.String(5000))
     index = db.Column(db.Integer)
 
@@ -106,8 +100,8 @@ class MockInterview(db.Model):
 
     interview_uuid = db.Column(db.String(36), primary_key=True)
     interview_host_uuid = db.Column(db.ForeignKey('User.user_uuid'), index=True)
-    score = db.Column(db.Integer)
     referenced_script = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), index=True)
+    score = db.Column(db.Integer)
     end_time = db.Column(db.DateTime)
     self_memo = db.Column(db.String(5000))
 
@@ -122,7 +116,7 @@ class SynthesisSelfIntroduction(db.Model):
     script_uuid = db.Column(db.String(36), primary_key=True)
     script_host = db.Column(db.ForeignKey('User.user_uuid'), index=True)
     script_date = db.Column(db.DateTime)
-    script_name = db.Column(db.String(200))
+    script_title = db.Column(db.String(200))
 
     User = db.relationship('User', primaryjoin='SynthesisSelfIntroduction.script_host == User.user_uuid', backref='synthesis_self_introductions')
 
@@ -150,11 +144,5 @@ class User(db.Model):
     interesting_field = db.Column(db.String(1000))
     name = db.Column(db.String(100))
     email = db.Column(db.String(200))
-
-    def __init__(self, user_uuid, git_nickname="", interesting_field="", name="", email=""):
-        self.user_uuid = user_uuid
-        self.git_nickname = git_nickname
-        self.interesting_field = interesting_field
-        self.name = name
-        self.email = email
+    att_continue = db.Column(db.Integer, server_default=db.FetchedValue())
         
