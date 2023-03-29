@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify, make_response
 from flask_restx import Resource, Api
 from database.db_connect import db
-from database import module
-from datetime import datetime
+from database.module import Attendance, CommonQue, IndividualQue, MockInterview, \
+    SelfIntroductionA, SelfIntroductionQ, SynthesisSelfIntroduction, TodayQue, \
+    User, CommentRecommandation, CommunityComment
+from datetime import datetime, timedelta, date, time, timezone
 import pytz
 import uuid
 
@@ -17,32 +19,98 @@ def turn_datetime_to_longint(dt):
     ret = 100*ret + dt.minute
     return ret
 
-@api.route('/date')
+def yesterday_return(today):
+    d = today.date()
+    t = time(0,0)
+    toDate = datetime.combine(d, t)
+    fromDate = toDate - timedelta(days=1)
+    
+    return fromDate, toDate
+
+def today_return(today):
+    d = today.date()
+    t = time(0,0)
+    fromDate = datetime.combine(d, t)
+    toDate = fromDate + timedelta(days=1)
+    
+    return fromDate, toDate
+
+
+@api.route('/date/<string:uuid2>')
 class date(Resource):
-    def get(self):
+    def get(self, uuid2):
         kst = pytz.timezone('Asia/Seoul')
         now = datetime.now(kst)
-        ret = turn_datetime_to_longint(now)
-        return ret
+        fromdate, todate = yesterday_return(now)
+        user_record = Attendance.query.filter(Attendance.user_uuid == uuid2,\
+                Attendance.att_date>=fromdate, Attendance.att_date < todate).first()
+        if(user_record):
+            return 1
+        return 0
+        ret1 = turn_datetime_to_longint(fromdate)
+        ret2 = turn_datetime_to_longint(todate)
+        return ret2
 
+#def __init__(self, att_uuid, user_uuid, att_date = datetime.now(pytz.timezone('Asia/Seoul'))):
 @api.route('/attendance/<string:uuid2>')
 class attendance(Resource):
-    def post(self, uuid2):
-        #(self, att_uuid, user_uuid, att_continuity, att_date):
-        new_att_uuid = uuid.uuid1()
-        att_continuity = 0
-        new_att_date = datetime.now(pytz.timezone('Asia/Seoul'))
-        
-        befo_att = module.User.query.filter_by(user_uuid=uuid2).first()
-        
+    def get(self, uuid2):
+        today = datetime.now(pytz.timezone('Asia/Seoul'))
+        fromdate, todate = today_return(today)
+        #check user_uuid is exist
         try:
-            new_attd = module.Attendance(new_att_uuid, uuid2, att_continuity, new_att_date)
+            target_user = User.query.get(uuid2)
+        except:
+            return -1
+        user_record = Attendance.query.filter(Attendance.user_uuid == uuid2,\
+                Attendance.att_date>=fromdate, Attendance.att_date < todate).first()
+        if(user_record):
+            return 1
+        return 0
+    def post(self, uuid2):
+        new_att_uuid = uuid.uuid1()
+        today = datetime.now(pytz.timezone('Asia/Seoul'))
+        fromdate, todate = yesterday_return(today)
+        try:
+            target_user = User.query.get(uuid2)
+        except:
+            return 0
+        user_record = Attendance.query.filter(Attendance.user_uuid == uuid2,\
+                Attendance.att_date>=fromdate, Attendance.att_date < todate).first()
+        fromdate, todate = today_return(today)
+        user_record2 = Attendance.query.filter(Attendance.user_uuid == uuid2,\
+                Attendance.att_date>=fromdate, Attendance.att_date < todate).first()
+        if(user_record and not user_record2):
+            target_user.att_continue+=1
+        else:
+            target_user.att_continue=1
+        try:
+            new_attd = Attendance(new_att_uuid, uuid2)
             db.session.add(new_attd)
             db.session.commit()
         except:
             return 0
         return 1
-
+    def delete(self, uuid2):
+        print(2)
+        today = datetime.now(pytz.timezone('Asia/Seoul'))
+        fromdate, todate = today_return(today)
+        user_record = Attendance.query.filter(Attendance.user_uuid == uuid2,\
+                Attendance.att_date>=fromdate, Attendance.att_date < todate).first()
+        target_user = User.query.filter(User.user_uuid == uuid2).first()
+        if(user_record):
+            db.session.delete(user_record)
+            if(target_user.att_continue > 0):
+                target_user.att_continue -= 1
+            db.session.commit()
+            return 1
+        else:
+            return 0
+        
+        
+        
+        
+        
 default_interest_list = ['os', 'database', 'server', 'c++', 'java', 'python']
 
 @api.route('/interesting_field/<string:uuid>')

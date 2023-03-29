@@ -65,7 +65,7 @@ class MockInterview(db.Model):
         
     CommonQue = db.relationship('CommonQue', primaryjoin='MockInterview.common_question1 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews')
     CommonQue1 = db.relationship('CommonQue', primaryjoin='MockInterview.common_question2 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews_0')
-    CommonQue2 = db.relationship('CommonQue', primaryjoin='MockInterview.common_question3 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews')
+    CommonQue2 = db.relationship('CommonQue', primaryjoin='MockInterview.common_question3 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews_1')
     IndividualQue = db.relationship('IndividualQue', primaryjoin='MockInterview.individual_question1 == IndividualQue.ques_uuid', backref='individualque_mock_interviews')
     IndividualQue1 = db.relationship('IndividualQue', primaryjoin='MockInterview.individual_question2 == IndividualQue.ques_uuid', backref='individualque_mock_interviews_0')
     User = db.relationship('User', primaryjoin='MockInterview.interview_host_uuid == User.user_uuid', backref='mock_interviews')

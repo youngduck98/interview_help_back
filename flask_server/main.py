@@ -12,7 +12,8 @@ from user_route import user_path
 
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
-from database.module import User, Achievement, Attendance, CommonQue, IndividualQue, InterviewLog, InterviewQuestion, ItemSelfIntroduction, MockInterview, SynthesisSelfIntroduction
+from database import admin_view
+#from database.module import User, Attendance, CommonQue, IndividualQue, MockInterview, SynthesisSelfIntroduction, SelfIntroductionA, SelfIntroductionQ, TodayQue, CommentRecommandation, CommunityComment
 
 app = Flask(__name__) # app assignment
 app.config.from_object(config) # app setting config through config object(related to DB)
@@ -21,6 +22,7 @@ app.register_blueprint(user_path.user_ab, url_prefix='/user')
 
 api = Api(app) # api that make restapi more easier
 
+"""
 # blueprint name에 기본적으로 user가 있다길래 그거 없애기 위한 것
 # 이후 만약 문제 생기면 밑에 admin.add_view(ModelView(User, db.session))와 함께 지우면 됨
 # ----------------------------------
@@ -33,20 +35,26 @@ for bp in app.blueprints.values():
 if user_blueprint:
     app.blueprints.pop(user_blueprint.name)
 # ----------------------------------
-
+    
 # set flask_admin
 admin = Admin(app, name='InterviewM@ster', template_mode='bootstrap3')
-admin.add_view(ModelView(User, db.session))
-admin.add_view(ModelView(SynthesisSelfIntroduction, db.session))
-admin.add_view(ModelView(ItemSelfIntroduction, db.session))
-admin.add_view(ModelView(CommonQue, db.session))
-admin.add_view(ModelView(IndividualQue, db.session))
-admin.add_view(ModelView(Attendance, db.session))
+admin.add_view(admin_view.UserAdminView(module.User, db.session))
+admin.add_view(admin_view.SynthesisSelfIntroductionAdminView(module.SynthesisSelfIntroduction, db.session))
+#admin.add_view(ModelView(ItemSelfIntroduction, db.session))
+admin.add_view(admin_view.CommonQueAdminView(module.CommonQue, db.session))
+admin.add_view(admin_view.IndividualQueAdminView(module.IndividualQue, db.session))
+admin.add_view(admin_view.AttendanceAdminView(module.Attendance, db.session))
 # admin.add_view(ModelView(TodayQue, db.session))
-admin.add_view(ModelView(MockInterview, db.session))
-admin.add_view(ModelView(InterviewLog, db.session))
-admin.add_view(ModelView(Achievement, db.session))
-admin.add_view(ModelView(InterviewQuestion, db.session))
+admin.add_view(admin_view.MockInterviewAdminView(module.MockInterview, db.session))
+#admin.add_view(ModelView(InterviewLog, db.session))
+#admin.add_view(ModelView(Achievement, db.session))
+#admin.add_view(ModelView(InterviewQuestion, db.session))
+admin.add_view(admin_view.SelfIntroductionAAdminView(module.SelfIntroductionA, db.session))
+admin.add_view(admin_view.SelfIntroductionQAdminView(module.SelfIntroductionQ, db.session))
+admin.add_view(admin_view.TodayQueAdminView(module.TodayQue, db.session))
+admin.add_view(admin_view.CommentRecommandationAdminView(module.CommentRecommandation, db.session))
+admin.add_view(admin_view.CommunityCommentAdminView(module.CommunityComment, db.session))
+"""
 
 @api.route('/test/<string:uuid>')
 class test(Resource):
