@@ -1,0 +1,1 @@
+default_interest_list = ['os', 'database', 'server', 'c++', 'java', 'python']

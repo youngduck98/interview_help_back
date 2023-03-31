@@ -8,5 +8,6 @@ aws_db = {
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+JSON_AS_ASCII = False # 아직 test 못해봤음-jsonify 한글 보정
 SQLALCHEMY_DATABASE_URI = f"mysql://{aws_db['user']}:{aws_db['password']}@{aws_db['host']}:{aws_db['port']}/\
 {aws_db['database']}?charset=utf8"

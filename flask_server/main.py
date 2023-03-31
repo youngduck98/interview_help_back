@@ -1,18 +1,26 @@
-import sys, os
+import sys, os, json
 from flask import Flask, request, jsonify
 
 from datetime import datetime
 import pytz
+import uuid
 
 import config
 from database.db_connect import db
 from database import module
+from database.module import Attendance, CommonQue, IndividualQue, MockInterview, \
+    SelfIntroductionA, SelfIntroductionQ, SynthesisSelfIntroduction, TodayQue, \
+    User, CommentRecommandation, CommunityComment
+from database.dictionary import ques_type_dict
+
+from sqlalchemy.sql.expression import func
+    
 from flask_restx import Resource, Api
 from user_route import user_path
-
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from database import admin_view
+import MySQLdb
 #from database.module import User, Attendance, CommonQue, IndividualQue, MockInterview, SynthesisSelfIntroduction, SelfIntroductionA, SelfIntroductionQ, TodayQue, CommentRecommandation, CommunityComment
 
 app = Flask(__name__) # app assignment
@@ -67,7 +75,8 @@ class test(Resource):
     def post(self, uuid):
         try:
             data = request.get_json()['git_nickname']
-            user_info = module.user_info_table(uuid, data)
+            user_info = module.UserInfo(uuid, data)
+            print(2)
             db.session.add(user_info)
             db.session.commit()
         except:
@@ -75,7 +84,7 @@ class test(Resource):
         return 1
     def put(self, uuid):
         try:
-            user_info = module.user_info_table.get(uuid)
+            user_info = module.UserInfo.query.get(uuid)
             user_info.git_nickname = request.get_json()['git_nickname']
             db.session.commit()
         except:
@@ -83,7 +92,7 @@ class test(Resource):
         return 1
     def delete(self, uuid):
         try:
-            user_info = module.user_info_table.get(uuid)
+            user_info = module.UserInfo.query.get(uuid)
             db.session.delete(user_info)
             db.session.commit()
         except:
@@ -94,44 +103,80 @@ class test(Resource):
 def main_page_mesg():
     return "this is capstone main page\n"
 
-@api.route('/membership/<string:uuid>')
+@api.route('/membership/<string:user_uuid>')
+#def __init__(self, user_uuid, git_nickname, interesting_field, name, email, att_continue=0):
 class user(Resource):
-    def get(self, uuid):
+    def get(self, user_uuid):
         try:
-            person = module.User.query.filter_by(user_uuid = uuid).first()
+            person = User.query.filter_by(User.user_uuid == user_uuid).first()
         except:
             return 0
         if person is None:
             return 0
         return 1
-    def post(self, uuid):
+    def post(self, user_uuid):
+        print(1)
         new_git_nickname = ""
         new_interesting_field = ""
-        new_user = module.User(uuid, new_git_nickname, new_interesting_field)
+        name = request.get_json()['name']
+        email = request.get_json()['email']
         try:
+            new_user = User(user_uuid, new_git_nickname, new_interesting_field, name, email, 0)
             db.session.add(new_user)
             db.session.commit()
         except:
             return 0
         return 1
-    def delete(self, uuid):
+    def delete(self, user_uuid):
         try:
-            user = module.User.query.filter_by(user_uuid=uuid).first()
+            user = User.query.filter_by(User.user_uuid==user_uuid).first()
             db.session.delete(user)
             db.session.commit()
         except:
             return 0
         return 1
 
-@api.route('/gpttest/<string:uuid>')
-class gpttest(Resource):
-    def get(self, uuid):
+#def __init__(self, ques_uuid, question, ques_type=0, recommandation=0):
+@api.route('/common_question/')
+class common_question(Resource):
+    def get(self):
+        common_ques_uuid = request.args.get('common_ques_uuid')
+        que_record = db.session.query(CommonQue).filter(CommonQue.ques_uuid == common_ques_uuid)
+        if(que_record):
+            return 1
+        return 0
+    def post(self):
+        category = request.args.get('category')
+        category = ques_type_dict[category]
+        common_ques_uuid = request.args.get('common_ques_uuid')
+        question = request.get_json()['question']
+        new_record = CommonQue(common_ques_uuid, question, category)
+        db.session.add(new_record)
+        db.session.commit()
+    def put(self):
+        category = request.args.get('category')
+        category = ques_type_dict[category]
+        common_ques_uuid = request.args.get('common_ques_uuid')
+        question = request.get_json()['question']
         try:
-            uuid = module.ItemSelfIntroduction.query.filter_by(script_item_uuid = uuid).first()
+            record = db.session.query(CommonQue).get(common_ques_uuid)
+            if(not record):
+                return 0
+            record.question = question
+            db.session.commit()
+        except:
+            return 0
+        return 1
+    
+@api.route('/gpttest/<string:script_uuid>')
+class gpttest(Resource):
+    def get(self, script_uuid):
+        try:
+            script_uuid = module.ItemSelfIntroduction.query.filter_by(script_item_uuid = script_uuid).first()
         except:
             return 0
         
-        return uuid
+        return script_uuid
 
 if __name__ == "__main__":
     app.run(host = "0.0.0.0")

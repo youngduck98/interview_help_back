@@ -4,6 +4,17 @@ from .db_connect import db
 from datetime import datetime
 import pytz
 
+
+class UserInfo(db.Model):
+    __tablename__ = 'user_info'
+
+    user_uuid = db.Column(db.String(45), primary_key=True, server_default=db.FetchedValue())
+    git_nickname = db.Column(db.String(45), server_default=db.FetchedValue())
+    
+    def __init__(self, user_uuid, git_nickname):
+        self.user_uuid = user_uuid
+        self.git_nickname = git_nickname
+
 class Attendance(db.Model):
     __tablename__ = 'Attendance'
 
@@ -17,7 +28,6 @@ class Attendance(db.Model):
         self.att_uuid = att_uuid
         self.user_uuid = user_uuid
         self.att_date = att_date
-
 
 class CommonQue(db.Model):
     __tablename__ = 'CommonQues'
@@ -100,8 +110,6 @@ class SelfIntroductionA(db.Model):
         self.script_ques_uuid = script_ques_uuid
         self.answer = answer
 
-
-
 class SelfIntroductionQ(db.Model):
     __tablename__ = 'SelfIntroduction_Q'
 
@@ -115,8 +123,6 @@ class SelfIntroductionQ(db.Model):
         self.question = question
         self.index = index
         self.tip = tip
-
-
 
 class SynthesisSelfIntroduction(db.Model):
     __tablename__ = 'SynthesisSelfIntroduction'
@@ -165,9 +171,10 @@ class User(db.Model):
     email = db.Column(db.String(200))
     att_continue = db.Column(db.Integer, server_default=db.FetchedValue())
     
-    def __init__(self, user_uuid, git_nickname, name, email, att_continue=0):
+    def __init__(self, user_uuid, git_nickname, interesting_field, name, email, att_continue=0):
         self.user_uuid = user_uuid
         self.git_nickname = git_nickname
+        self.interesting_field = interesting_field
         self.name = name
         self.email = email
         self.att_continue = att_continue

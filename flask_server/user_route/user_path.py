@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify, make_response
+from sqlalchemy.sql.expression import func
 from flask_restx import Resource, Api
 from database.db_connect import db
 from database.module import Attendance, CommonQue, IndividualQue, MockInterview, \
     SelfIntroductionA, SelfIntroductionQ, SynthesisSelfIntroduction, TodayQue, \
     User, CommentRecommandation, CommunityComment
+from database.list import default_interest_list
+from database.dictionary import ques_type_dict
 from datetime import datetime, timedelta, date, time, timezone
-import pytz
-import uuid
+import pytz, uuid, json
 
 user_ab = Blueprint('user', __name__)
 api = Api(user_ab) # api that make restapi more easier
@@ -35,6 +37,13 @@ def today_return(today):
     
     return fromDate, toDate
 
+def week_return(today, weekday):
+    d = today.date()
+    t = time(0,0)
+    fromDate = datetime.combine(d,t) - timedelta(days = weekday)
+    toDate = fromDate + timedelta(days=7)
+    
+    return fromDate, toDate
 
 @api.route('/date/<string:uuid2>')
 class date(Resource):
@@ -92,7 +101,6 @@ class attendance(Resource):
             return 0
         return 1
     def delete(self, uuid2):
-        print(2)
         today = datetime.now(pytz.timezone('Asia/Seoul'))
         fromdate, todate = today_return(today)
         user_record = Attendance.query.filter(Attendance.user_uuid == uuid2,\
@@ -106,17 +114,110 @@ class attendance(Resource):
             return 1
         else:
             return 0
-        
-        
-        
-        
-        
-default_interest_list = ['os', 'database', 'server', 'c++', 'java', 'python']
 
+@api.route('/cont_attendance/')
+class cont_attendacne(Resource):
+    def get(self):
+        user_uuid = request.args.get('user_uuid')
+        print(user_uuid)
+        target_user = User.query.get(user_uuid)
+        if(target_user):
+            days = target_user.att_continue
+            return days
+        return 0
+    def put(self):
+        user_uuid = request.args.get('user_uuid')
+        days = request.args.get('days')
+        target_user = User.query.get(user_uuid)
+        if(target_user):
+            target_user.att_continue = days
+            try:
+                db.session.commit()
+            except:
+                return -1
+            return 1
+        else:
+            return 0
+
+#def __init__(self, att_uuid, user_uuid, att_date = datetime.now(pytz.timezone('Asia/Seoul'))):
+@api.route('/week_attendance/<string:user_uuid>')
+class week_attendance(Resource):
+    def get(self, user_uuid):
+        today = datetime.now(pytz.timezone('Asia/Seoul'))
+        weekday = today.weekday()
+        fromdate, todate = week_return(today, weekday)
+        target_user = User.query.get(user_uuid)
+        if(not target_user):
+            return 0
+        
+        att_record = Attendance.query.filter(Attendance.user_uuid == user_uuid, \
+            Attendance.att_date > fromdate, Attendance.att_date<todate).all()
+        
+        week_att = [0,0,0,0,0,0,0]
+        for day in att_record:
+            week_att[day.att_date.weekday()] = 1
+        week_att = week_att[0:today.weekday()]
+        return week_att             
+        
+#today_question/?user_uuid=<string>&current_ques_uuid=<string>
+"""
+1. it will be more sensible, set a category advance before ask to backend
+2. this will reduce a lot of code
+"""
+@api.route('/today_question/')
+class today_question(Resource):
+    def get(self):
+        category = request.args.get('category')
+        category = ques_type_dict[category]
+        current_ques_uuid = request.args.get('current_ques_uuid')
+        que_record = db.session.query(CommonQue).filter(CommonQue.ques_uuid != current_ques_uuid, CommonQue.ques_type == category).\
+            order_by(func.random()).all()
+        if(que_record):
+            return json.dumps({"ques_uuid":que_record})
+        return 0
+
+#def __init__(self, tq_uuid, user_uuid, today_ques, user_memo="", date=)
+@api.route('/common_ques_memo/')
+class commmon_ques_memo(Resource):
+    def get(self):
+        user_uuid = request.args.get('user_uuid')
+        common_ques_uuid = request.args.get('common_ques_uuid')
+        record = db.session.query(TodayQue).filter(TodayQue.tq_uuid == common_ques_uuid,\
+            TodayQue.user_uuid == user_uuid).first()
+        question = db.session.query(CommonQue.ques_uuid, CommonQue.question).\
+            filter(CommonQue.ques_uuid == record.today_ques).first()
+        if(record):
+            dt = turn_datetime_to_longint(record.date)
+            return jsonify({"question_uuid":question.ques_uuid, "question":question.question,\
+                "memo":record.user_memo, "saved_date":dt})
+        return 0
+    def put(self):
+        user_uuid = request.args.get('user_uuid')
+        common_ques_uuid = request.args.get('common_ques_uuid')
+        record = db.session.query(TodayQue).filter(TodayQue.tq_uuid == common_ques_uuid,\
+            TodayQue.user_uuid == user_uuid).first()
+        try:
+            record.user_memo = request.args.get('memo')
+            db.session.commit()
+        except:
+            return 0
+        return 1
+    def delete(self):
+        user_uuid = request.args.get('user_uuid')
+        common_ques_uuid = request.args.get('common_ques_uuid')
+        record = db.session.query(TodayQue).filter(TodayQue.tq_uuid == common_ques_uuid,\
+            TodayQue.user_uuid == user_uuid).first()
+        try:
+            record.user_memo = ""
+            db.session.commit()
+        except:
+            return 0
+        return 1
+#def __init__(self, user_uuid, git_nickname, interesting_field, name, email, att_continue=0)
 @api.route('/interesting_field/<string:uuid>')
 class interest_list(Resource):
     def get(self, uuid):
-         raw_interest_list = module.User.query.filter_by(user_uuid=uuid).first().interesting_field
+         raw_interest_list = User.query.filter_by(user_uuid=uuid).first().interesting_field
          #raw_interest_list = "ab,cd,ef,gh" #test code
          interest_list = raw_interest_list.split(',')
          ret = []
@@ -135,7 +236,7 @@ class interest_list(Resource):
             processed_list += interest_subject + ','
         processed_list = processed_list[0:-1]
         try:
-            user = module.User.query.filter_by(user_uuid=uuid).first()
+            user = User.query.filter_by(user_uuid=uuid).first()
             user.interesting_field = processed_list
             db.session.commit()
         except:
@@ -143,16 +244,30 @@ class interest_list(Resource):
         return 1
     def delete(self, uuid):
         try:
-            user = module.User.query.filter_by(user_uuid=uuid).first()
+            user = User.query.filter_by(user_uuid=uuid).first()
             user.interesting_field = ""
             db.session.commit()
         except:
             return 0
         return 1
 
-@api.route('attendance/<string:uuid>')
-class attendance(Resource):
-    def get(self, uuid):
-        raw_interest_list = module.User.query.filter_by(user_uuid=uuid).first().interesting_field
-
-
+#def __init__(self, script_uuid, script_host, script_date, script_title, question=""):
+#def __init__(self, script_ques_uuid, question, index=0, tip=""): - Q
+@api.route('/self_intro_script/')
+class self_intro_script(Resource):
+    def get(self):
+        script_uuid = request.args.get('script_uuid')
+        user_uuid = request.args.get('user_uuid')
+        record = db.session.query(SynthesisSelfIntroduction).filter(\
+            SynthesisSelfIntroduction.script_uuid==script_uuid, \
+                SynthesisSelfIntroduction.script_host == user_uuid).first()
+        date = turn_datetime_to_longint(record.script_date)
+        que_uuid_list = record.question.split(',')
+        que_list = []
+        for que_uuid in que_uuid_list:
+            que_record = db.session.query(SelfIntroductionQ).filter(\
+                SelfIntroductionQ.script_ques_uuid == que_uuid).first()
+            que_list.append(jsonify({"script_item_uuid":que_record.script_ques_uuid,\
+                "question":que_record.question, "index":que_record.index}))
+        #작성중
+        

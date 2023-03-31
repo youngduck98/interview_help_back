@@ -1,0 +1,1 @@
+ques_type_dict = {"":0,"java":1,"c++":2, "os": 3}
