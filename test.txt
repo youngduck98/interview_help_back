@@ -1,0 +1,13 @@
+que_record = db.session.query(CommonQue).filter(CommonQue.ques_uuid != current_ques_uuid, CommonQue.ques_type == category)
+json.dumps
+random_record = MyTable.query.order_by(func.random()).first()
+uuid.uuid1()
+
+members = [
+	{'id': 102, 'name': "Ashley Allen", 'address': "Seoul"},
+	{'id': 202, 'name': "Peter Parker", 'address': "New York"},
+	{'id': 104, 'name': "John Smith", 'address': "Tokyo"},
+]
+print(list(m['address'] for m in members))
+
+timediff = cr.date.timestamp()*1000

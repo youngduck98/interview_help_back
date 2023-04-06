@@ -4,7 +4,6 @@ from .db_connect import db
 from datetime import datetime
 import pytz
 
-
 class UserInfo(db.Model):
     __tablename__ = 'user_info'
 
@@ -35,13 +34,13 @@ class CommonQue(db.Model):
     ques_uuid = db.Column(db.String(36), primary_key=True)
     question = db.Column(db.String(1000))
     ques_type = db.Column(db.Integer, server_default=db.FetchedValue())
-    recommandation = db.Column(db.Integer, server_default=db.FetchedValue())
+    recommendation = db.Column(db.Integer, server_default=db.FetchedValue())
     
-    def __init__(self, ques_uuid, question, ques_type=0, recommandation=0):
+    def __init__(self, ques_uuid, question, ques_type=0, recommendation=0):
         self.ques_uuid = ques_uuid
         self.question = question
         self.ques_type = ques_type
-        self.recommandation = recommandation
+        self.recommendation = recommendation
 
 class IndividualQue(db.Model):
     __tablename__ = 'IndividualQues'
@@ -117,6 +116,7 @@ class SelfIntroductionQ(db.Model):
     question = db.Column(db.String(1000), nullable=False)
     index = db.Column(db.Integer)
     tip = db.Column(db.String(1500))
+    max_answer_len = db.Column(db.Integer, server_default=db.FetchedValue())
     
     def __init__(self, script_ques_uuid, question, index=0, tip=""):
         self.script_ques_uuid = script_ques_uuid
@@ -179,13 +179,13 @@ class User(db.Model):
         self.email = email
         self.att_continue = att_continue
 
-class CommentRecommandation(db.Model):
-    __tablename__ = 'comment_recommandation'
+class CommentRecommendation(db.Model):
+    __tablename__ = 'comment_recommendation'
 
     cr_uuid = db.Column(db.String(36), primary_key=True)
     user_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
 
-    User = db.relationship('User', primaryjoin='CommentRecommandation.user_uuid == User.user_uuid', backref='comment_recommandations')
+    User = db.relationship('User', primaryjoin='CommentRecommendation.user_uuid == User.user_uuid', backref='comment_recommendations')
     
     def __init__(self, cr_uuid, user_uuid):
         self.cr_uuid = cr_uuid
@@ -199,15 +199,15 @@ class CommunityComment(db.Model):
     common_ques = db.Column(db.ForeignKey('CommonQues.ques_uuid'), nullable=False, index=True)
     comment = db.Column(db.String(5000), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
-    recommandation = db.Column(db.Integer, server_default=db.FetchedValue())
+    recommendation = db.Column(db.Integer, server_default=db.FetchedValue())
 
     CommonQue = db.relationship('CommonQue', primaryjoin='CommunityComment.common_ques == CommonQue.ques_uuid', backref='community_comments')
     User = db.relationship('User', primaryjoin='CommunityComment.user_uuid == User.user_uuid', backref='community_comments')
 
-    def __init__(self, cc_uuid, user_uuid, common_ques, comment, date=datetime.now(pytz.timezone('Asia/Seoul')), recommandation=0):
+    def __init__(self, cc_uuid, user_uuid, common_ques, comment, date=datetime.now(pytz.timezone('Asia/Seoul')), recommendation=0):
         self.cc_uuid = cc_uuid
         self.user_uuid = user_uuid
         self.common_ques = common_ques
         self.comment = comment
         self.date = date
-        self.recommandation = recommandation
+        self.recommendation = recommendation

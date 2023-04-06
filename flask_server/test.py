@@ -50,3 +50,9 @@ s = "\n\n1. Attention 메커니즘이 어떻게 자연어 처리 작업에 사�
 
 s = parse_statment(s)
 print(s)
+
+a = [1,2,3]
+b = [4,5,6]
+
+for a1,b1 in zip(a, b):
+    print(1)

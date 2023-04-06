@@ -10,13 +10,15 @@ from database.db_connect import db
 from database import module
 from database.module import Attendance, CommonQue, IndividualQue, MockInterview, \
     SelfIntroductionA, SelfIntroductionQ, SynthesisSelfIntroduction, TodayQue, \
-    User, CommentRecommandation, CommunityComment
+    User, CommentRecommendation, CommunityComment
 from database.dictionary import ques_type_dict
 
 from sqlalchemy.sql.expression import func
     
 from flask_restx import Resource, Api
 from user_route import user_path
+from selfintro import self_intro
+from community import community
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from database import admin_view
@@ -27,6 +29,8 @@ app = Flask(__name__) # app assignment
 app.config.from_object(config) # app setting config through config object(related to DB)
 db.init_app(app)
 app.register_blueprint(user_path.user_ab, url_prefix='/user')
+app.register_blueprint(self_intro.selfintro_ab, url_prefix='/self_intro')
+app.register_blueprint(community.community_ab, url_prefix='/community')
 
 api = Api(app) # api that make restapi more easier
 
