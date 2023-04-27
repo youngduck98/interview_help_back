@@ -5,7 +5,7 @@ import json
 class GenerateQues:
     
     #발급받은 API 키 인증
-    openai.api_key = "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"
+    openai.api_key = "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"
     
     def __init__(self, contents, temperature=0.5, max_tokens=1000, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
         self.contents = contents

@@ -97,12 +97,12 @@ class SelfIntroductionA(db.Model):
 
     script_ans_uuid = db.Column(db.String(36), primary_key=True)
     user_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
-    script_ques_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), nullable=False, index=True)
+    script_ques_uuid = db.Column(db.ForeignKey('SelfIntroduction_Q.script_ques_uuid'), nullable=False, index=True)
     answer = db.Column(db.String(5000))
 
-    SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='SelfIntroductionA.script_ques_uuid == SynthesisSelfIntroduction.script_uuid', backref='self_introduction_as')
+    SelfIntroduction_Q = db.relationship('SelfIntroductionQ', primaryjoin='SelfIntroductionA.script_ques_uuid == SelfIntroductionQ.script_ques_uuid', backref='self_introduction_as')
     User = db.relationship('User', primaryjoin='SelfIntroductionA.user_uuid == User.user_uuid', backref='self_introduction_as')
-    
+
     def __init__(self, script_ans_uuid, user_uuid, script_ques_uuid, answer=""):
         self.script_ans_uuid = script_ans_uuid
         self.user_uuid = user_uuid
@@ -179,18 +179,6 @@ class User(db.Model):
         self.email = email
         self.att_continue = att_continue
 
-class CommentRecommendation(db.Model):
-    __tablename__ = 'comment_recommendation'
-
-    cr_uuid = db.Column(db.String(36), primary_key=True)
-    user_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
-
-    User = db.relationship('User', primaryjoin='CommentRecommendation.user_uuid == User.user_uuid', backref='comment_recommendations')
-    
-    def __init__(self, cr_uuid, user_uuid):
-        self.cr_uuid = cr_uuid
-        self.user_uuid = user_uuid
-
 class CommunityComment(db.Model):
     __tablename__ = 'community_comment'
 
@@ -211,3 +199,17 @@ class CommunityComment(db.Model):
         self.comment = comment
         self.date = date
         self.recommendation = recommendation
+
+class CommentRecommendation(db.Model):
+    __tablename__ = 'comment_recommendation'
+
+    cr_uuid = db.Column(db.String(36), primary_key=True)
+    user_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
+    cc_uuid = db.Column(db.ForeignKey('community_comment.cc_uuid'), nullable=False, index=True)
+    
+    User = db.relationship('User', primaryjoin='CommentRecommendation.user_uuid == User.user_uuid', backref='comment_recommendations')
+    
+    def __init__(self, cr_uuid, user_uuid, cc_uuid):
+        self.cr_uuid = cr_uuid
+        self.user_uuid = user_uuid
+        self.cc_uuid = cc_uuid

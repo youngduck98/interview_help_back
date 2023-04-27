@@ -1,12 +1,7 @@
 from datetime import datetime, timedelta, date, time, timezone
 
 def turn_datetime_to_longint(dt):
-    ret = dt.year
-    ret = 100*ret + dt.month
-    ret = 100*ret + dt.day
-    ret = 100*ret + dt.hour
-    ret = 100*ret + dt.minute
-    return ret
+    return int(dt.timestamp()*1000)
 
 def date_return(today, day_offset = 0, duration= 1):
     d = today.date()

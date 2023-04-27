@@ -10,9 +10,36 @@ from database.dictionary import ques_type_dict
 from function.about_time import date_return, turn_datetime_to_longint
 from datetime import datetime, timedelta, date, time, timezone
 import pytz, uuid, json, random
+from github import Github
 
 user_ab = Blueprint('user', __name__)
 api = Api(user_ab) # api that make restapi more easier
+
+@api.route('/git_lang/<string:uuid2>')
+class git_lang(Resource):
+    def get(self, uuid2):
+        g = Github("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")
+        git_nickname = User.query.get(uuid2)
+        if(not git_nickname):
+            return None
+        
+        try:
+            user = g.get_user(git_nickname)
+            user = g.get_user("youngduck98")#test code
+        except:
+            return "fail to get git_nickname"
+        
+        languages = []
+        
+        for repo in user.get_repos():
+            # Get the programming languages used in this repository
+            repo_languages = repo.get_languages()
+            # Append the programming languages to the list of languages used by the user
+            for language in repo_languages:
+                if language not in languages:
+                    languages.append({language: })
+        
+        
 
 @api.route('/date/<string:uuid2>')
 class date(Resource):
@@ -146,6 +173,7 @@ class first_today_question(Resource):
             return None
         raw_interest_list = record.interesting_field
         interest_list = raw_interest_list.split(',')
+        print(ques_type_dict["java"])
         category = ques_type_dict[interest_list[random.randint(0, len(interest_list)-1)]]
         que_record = db.session.query(CommonQue).filter(CommonQue.ques_type == category).\
             order_by(func.random()).first()
@@ -259,89 +287,3 @@ class interest_list(Resource):
         except:
             return 0
         return 1
-
-#make scriptiem(question list in script)
-"""
-ScriptItem(
- index: int
- script_item_uuid: String,
- script_item_question: String,
- script_item_answer: String
- script_item_answer_max_length: Int)
-"""
-def make_script_item(que_uuid_list):
-    que_list = []
-    for que_uuid in que_uuid_list:
-        que_record = db.session.query(SelfIntroductionQ).filter(\
-            SelfIntroductionQ.script_ques_uuid == que_uuid).first()
-        answer_record = db.session.query(SelfIntroductionA).filter(\
-            SelfIntroductionA.script_ques_uuid == que_uuid).first()
-        answer=""
-        if(answer_record):
-            answer = answer_record.answer
-        que_list.append({"index":que_record.index, "script_item_uuid":que_record.script_ques_uuid,\
-            "script_item_question":que_record.question, \
-                "script_item_answer": answer, \
-                    "script_item_answer_max_length": que_record.max_answer_len})
-    return que_list
-"""
-Script(
- script_uuid: String,
- script_date: Long,
- script_title: String,
- script_items: List<ScriptItem>)
-"""
-def return_script(script_uuid, user_uuid):
-    record = db.session.query(SynthesisSelfIntroduction).filter(\
-        SynthesisSelfIntroduction.script_uuid==script_uuid, \
-            SynthesisSelfIntroduction.script_host == user_uuid).first()
-    que_uuid_list = record.question.split(',')
-    que_list = make_script_item(que_uuid_list)
-    ret = {"script_uuid":record.script_uuid, \
-        "script_date":turn_datetime_to_longint(record.script_date), \
-        "script_title":record.script_title, "script_items":que_list}
-    return ret
-"""
-user_uid: String
-script_title: String
-items: List<QuesAnsItem>
-
-QuesAnsItem(
- question_uuid: String,
- answer: String
-)
-"""
-def make_script(user_uuid, script_uuid, script_title, question_list, answer_list):
-    ques_string=""
-    for ques_uuid, answer in zip(question_list, answer_list):
-        ques_record = db.session.query('SelfIntroductionQ').get(ques_uuid)
-        if(not ques_record):
-            return False
-        ques_string += ques_record.script_ques_uuid
-        answer_record = SelfIntroductionA(user_uuid, script_uuid, ques_uuid, answer)
-        try:
-            db.session.add(answer_record)
-            db.session.commit()
-        except:
-            return False
-    today = datetime.now(pytz.timezone('Asia/Seoul'))
-    ret = uuid.uuid1()
-    script_record = SynthesisSelfIntroduction(ret, user_uuid, turn_datetime_to_longint(today), \
-        script_title, ques_string)
-    db.session.add(script_record)
-    return ret
-            
-    
-@api.route('/self_intro_script/')
-class self_intro_script(Resource):
-    def get(self):
-        script_uuid = request.args.get('script_uuid')
-        user_uuid = request.args.get('user_uuid')
-        return jsonify(return_script(script_uuid, user_uuid))
-    """
-    def post(self):
-        user_uuid = request.args.get('script_uuid')
-        script_uuid = request.args.get('script_uuid')
-        script_title = 
-        return make_script()
-     """   
