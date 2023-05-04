@@ -1,9 +1,7 @@
 from github import Github
-import pytz, uuid, json, random
-from flask import Blueprint, request, jsonify, make_response
 
 # create a Github object, authenticated with an access token
-g = Github("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")
+g = Github("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")
 
 # get a user by their GitHub username
 user = g.get_user("youngduck98")
@@ -23,8 +21,6 @@ for repo in user.get_repos():
         all_num += repo_languages[language]
 lang_list = [[k,round(v/all_num * 100, 2)] for k, v in language_dict.items()]
 lang_list.sort(key=lambda x:x[1], reverse=True)
-
-
 
 # Print the list of programming languages used by the user
 print("The user is proficient in the following programming languages:")

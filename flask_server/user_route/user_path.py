@@ -8,38 +8,79 @@ from database.module import Attendance, CommonQue, IndividualQue, MockInterview,
 from database.list import default_interest_list
 from database.dictionary import ques_type_dict
 from function.about_time import date_return, turn_datetime_to_longint
+from function.about_string import *
 from datetime import datetime, timedelta, date, time, timezone
 import pytz, uuid, json, random
+import os
 from github import Github
 
 user_ab = Blueprint('user', __name__)
 api = Api(user_ab) # api that make restapi more easier
 
-@api.route('/git_lang/<string:uuid2>')
+@api.route('/git_lang/')
 class git_lang(Resource):
-    def get(self, uuid2):
-        g = Github("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")
-        git_nickname = User.query.get(uuid2)
-        if(not git_nickname):
-            return None
-        
-        try:
-            user = g.get_user(git_nickname)
-            user = g.get_user("youngduck98")#test code
+    def get(self):
+        # get a user by their GitHub username
+        num_of_item = int(request.args.get('num'))
+        user_uuid = request.args.get('uuid')
+        github_token = os.environ.get('GITHUB_TOKEN')
+        nickname = User.query.get(user_uuid).git_nickname
+        print(nickname)
+        user = Github(github_token).get_user(nickname)
+        try: 
+            print(2)
         except:
-            return "fail to get git_nickname"
-        
-        languages = []
-        
+            return None
+
+        language_dict = {}
+        all_num = 1
+
         for repo in user.get_repos():
             # Get the programming languages used in this repository
             repo_languages = repo.get_languages()
             # Append the programming languages to the list of languages used by the user
             for language in repo_languages:
-                if language not in languages:
-                    languages.append({language: })
+                if  language not in language_dict:
+                    language_dict[language] = repo_languages[language]
+                else:
+                    language_dict[language] += repo_languages[language]
+                all_num += repo_languages[language]
+        lang_list = [[k,round(v/all_num * 100, 2)] for k, v in language_dict.items()]
+        lang_list.sort(key=lambda x:x[1], reverse=True)
         
+        if(num_of_item >= len(lang_list)):
+            return lang_list
         
+        lang_list = lang_list[:num_of_item - 1]
+        
+        etc_p = 100
+        for element in lang_list:
+            etc_p -= element[1]
+            
+        lang_list.append(["기타",etc_p])
+
+        # Print the list of programming languages used by the user
+        return lang_list
+        
+@api.route('/git_nick/')
+class git_nick(Resource):
+    def get(self):
+        user_uuid = request.args.get('user_uuid')
+        try:
+            git_nick = User.query.get(user_uuid).git_nickname
+        except:
+            return 0
+        return git_nick
+    def put(self):
+        user_uuid = request.args.get('user_uuid')
+        git_nickname = request.args.get('git_nick')
+        try:
+            user = User.query.get(user_uuid)
+            user.git_nickname = git_nickname
+            db.session.commit()
+        except:
+            return 0
+        return 1
 
 @api.route('/date/<string:uuid2>')
 class date(Resource):
@@ -51,8 +92,8 @@ class date(Resource):
                 Attendance.att_date>=fromdate, Attendance.att_date < todate).first()
         if(user_record):
             return 1
-        ret1 = turn_datetime_to_longint(fromdate)
-        ret2 = turn_datetime_to_longint(todate)
+        ret1 = int(turn_datetime_to_longint(fromdate))
+        ret2 = int(turn_datetime_to_longint(todate))
         return jsonify({"from":ret1,"to": ret2})
 
 #def __init__(self, att_uuid, user_uuid, att_date = datetime.now(pytz.timezone('Asia/Seoul'))):
@@ -164,6 +205,19 @@ class change_today_question(Resource):
             return jsonify({"ques_uuid":que_record.ques_uuid, "question": que_record.question})
         return 0
 
+@api.route('/suggest_common_ques/')
+class add_common_ques(Resource):
+    def post(self):
+        user_uuid = request.args.get('user_uuid')
+        common_ques_uuid = request.args.get('common_ques_uuid')
+        user_memo = request.get_json()['memo']
+        tq_uuid = uuid.uuid1()
+        date = datetime.now(pytz.timezone('Asia/Seoul'))
+        today_que_record = TodayQue(tq_uuid, user_uuid, common_ques_uuid,\
+            user_memo, date)
+        db.session.add(today_que_record)
+        db.session.commit()
+
 @api.route('/first_today_question/')
 class first_today_question(Resource):
     def get(self):
@@ -187,32 +241,32 @@ class commmon_ques_memo(Resource):
     def get(self):
         user_uuid = request.args.get('user_uuid')
         common_ques_uuid = request.args.get('common_ques_uuid')
-        record = db.session.query(TodayQue).filter(TodayQue.tq_uuid == common_ques_uuid,\
+        record = db.session.query(TodayQue).filter(TodayQue.today_ques == common_ques_uuid,\
             TodayQue.user_uuid == user_uuid).first()
         if(record):
             question = db.session.query(CommonQue.ques_uuid, CommonQue.question).\
                 filter(CommonQue.ques_uuid == record.today_ques).first()
-            dt = turn_datetime_to_longint(record.date)
+            dt = int(turn_datetime_to_longint(record.date))
             return jsonify({"question_uuid":question.ques_uuid, "question":question.question,\
                 "memo":record.user_memo, "saved_date":dt})
         return None
-    def post(self):
-        user_uuid = request.args.get('user_uuid')
-        common_ques_uuid = request.args.get('common_ques_uuid')
-        user_memo = request.get_json()['memo']
-        tq_uuid = uuid.uuid1()
-        date = datetime.now(pytz.timezone('Asia/Seoul'))
-        today_que_record = TodayQue(tq_uuid, user_uuid, common_ques_uuid,\
-            user_memo, date)
-        db.session.add(today_que_record)
-        db.session.commit()
     def put(self):
         user_uuid = request.args.get('user_uuid')
         common_ques_uuid = request.args.get('common_ques_uuid')
-        record = db.session.query(TodayQue).filter(TodayQue.tq_uuid == common_ques_uuid,\
+        record = db.session.query(TodayQue).filter(TodayQue.today_ques == common_ques_uuid,\
             TodayQue.user_uuid == user_uuid).first()
+        
+        if(record):
+            try:
+                record.user_memo = request.get_json()['memo']
+                db.session.commit()
+            except:
+                return 0
+            return 1
+        
         try:
-            record.user_memo = request.get_json()['memo']
+            record = TodayQue(uuid.uuid1(), user_uuid, common_ques_uuid, request.get_json()['memo'])
+            db.session.add(record)
             db.session.commit()
         except:
             return 0
@@ -220,7 +274,7 @@ class commmon_ques_memo(Resource):
     def delete(self):
         user_uuid = request.args.get('user_uuid')
         common_ques_uuid = request.args.get('common_ques_uuid')
-        record = db.session.query(TodayQue).filter(TodayQue.tq_uuid == common_ques_uuid,\
+        record = db.session.query(TodayQue).filter(TodayQue.today_uuid == common_ques_uuid,\
             TodayQue.user_uuid == user_uuid).first()
         try:
             record.user_memo = ""
@@ -245,16 +299,11 @@ class memo_list(Resource):
             print(question)
             memo_list.append({"question_uuid":record.today_ques,\
                 "question":question,"memo":record.user_memo,\
-                    "saved_date":turn_datetime_to_longint(record.date)})
+                    "saved_date":int(turn_datetime_to_longint(record.date))})
         return jsonify(memo_list)
 #def __init__(self, user_uuid, git_nickname, interesting_field, name, email, att_continue=0)
 
-def make_list_to_string(input_list):
-    ret_str = ""
-    for element in input_list:
-        ret_str += element + ','
-    ret_str = ret_str[0:-1]
-    return ret_str
+
 @api.route('/interesting_field/<string:user_uuid>')
 class interest_list(Resource):
     def get(self, user_uuid):

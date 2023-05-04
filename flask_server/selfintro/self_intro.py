@@ -45,7 +45,7 @@ def return_script(script_uuid, user_uuid):
     que_uuid_list = record.question.split(',')
     que_list = make_script_item(que_uuid_list)
     ret = {"script_uuid":record.script_uuid, \
-        "script_date":turn_datetime_to_longint(record.script_date), \
+        "script_date":int(turn_datetime_to_longint(record.script_date)), \
         "script_title":record.script_title, "script_items":que_list}
     return ret
 

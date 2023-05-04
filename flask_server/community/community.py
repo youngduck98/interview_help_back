@@ -39,7 +39,7 @@ class view_comment(Resource):
         for cr in comment_records:
             ret.append({"cc_uuid":cr.cc_uuid,\
                 "user_uuid":cr.user_uuid, "common_ques":cr.common_ques, \
-                        "comment":cr.comment, "date":cr.date.timestamp()*1000, "recommendation":cr.recommendation})
+                        "comment":cr.comment, "date":int(cr.date.timestamp()*1000), "recommendation":cr.recommendation})
         
         #cc_uuid, user_uuid, common_ques, comment, date, recommendation
         return jsonify(ret)
@@ -56,7 +56,7 @@ class recommendation(Resource):
             return None
         #cc_uuid, user_uuid, common_ques, comment, date, recommendation
         return record.recommendation
-    def post(self):
+    def put(self):
         cc_uuid = request.args.get('cc_uuid')
         user_uuid = request.args.get('user_uuid')
         cc_record = db.session.query(CommunityComment).\
@@ -69,42 +69,16 @@ class recommendation(Resource):
         if(not check_user_record):
             return -2 # not user
         elif(check_cr_record):
-            return -1 # already recommend
+            cc_record.recommendation -= 1
+            db.session.delete(check_cr_record)
         else:
             #cc_uuid, user_uuid, common_ques, comment, date, recommendation
             cc_record.recommendation += 1
             new_cr_record = CommentRecommendation(uuid.uuid1(), user_uuid, cc_uuid)
             db.session.add(new_cr_record)
-            db.session.commit()
-            return cc_record.recommendation
-    def put(self):
-        cc_uuid = request.args.get('cc_uuid')
-        num = request.args.get('recommend')
-        try:
-            cc_record = db.session.query(CommunityComment).\
-                filter(CommunityComment.cc_uuid == cc_uuid).first()
-            cc_record.recommendation = num
-            db.session.commit()
-        except:
-            return 0
-        return 1
-    def delete(self):
-        cc_uuid = request.args.get('cc_uuid')
-        user_uuid = request.args.get('user_uuid')
-        cc_record = db.session.query(CommunityComment).\
-            filter(CommunityComment.cc_uuid == cc_uuid).first()
-        check_cr_record = db.session.query(CommentRecommendation).\
-            filter(CommentRecommendation.cc_uuid == cc_uuid,\
-                CommentRecommendation.user_uuid == user_uuid).first()
-        check_user_record = db.session.query(User).get(user_uuid)
-        if(not check_cr_record):
-            return -1
-        db.session.delete(check_cr_record)
-        cc_record.recommendation -= 1
-        if(cc_record.recommendation < 0):
-            cc_record.recommendation = 0
         db.session.commit()
         return cc_record.recommendation
+    
 
 @api.route('/comment/')
 class comment(Resource):
@@ -145,5 +119,35 @@ class comment(Resource):
         db.session.delete(cc_record)
         db.session.commit()
         return 1
-    
+
+@api.route('/view_my_comment/')
+class my_comment(Resource):
+    def get(self):
+        user_uuid = request.args.get('user_uuid')
+        records = CommunityComment.query.filter(CommunityComment.user_uuid == user_uuid)
         
+        ret = []
+        for record in records:
+            question = CommonQue.query.get(record.common_ques).question
+            ret.append({"cc_uuid": record.cc_uuid, "ques": question,\
+                "comment": record.comment, "date": int(record.date.timestamp()) * 1000, \
+                    "recommendation": record.recommendation})
+        
+        return jsonify(ret)
+
+@api.route('/view_my_ques_comment/')
+class my_comment(Resource):
+    def get(self):
+        user_uuid = request.args.get('user_uuid')
+        ques_uuid = request.args.get('ques_uuid')
+        records = CommunityComment.query.filter(CommunityComment.user_uuid == user_uuid, \
+            CommunityComment.common_ques)
+        
+        ret = []
+        for record in records:
+            question = CommonQue.query.get(record.common_ques).question
+            ret.append({"cc_uuid": record.cc_uuid, "ques": question,\
+                "comment": record.comment, "date": int(record.date.timestamp()) * 1000, \
+                    "recommendation": record.recommendation})
+        
+        return jsonify(ret)
