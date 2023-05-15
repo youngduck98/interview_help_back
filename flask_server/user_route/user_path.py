@@ -6,12 +6,13 @@ from database.module import Attendance, CommonQue, IndividualQue, MockInterview,
     SelfIntroductionA, SelfIntroductionQ, SynthesisSelfIntroduction, TodayQue, \
     User, CommentRecommendation, CommunityComment
 from database.list import default_interest_list
-from database.dictionary import ques_type_dict
+from database.dictionary import ques_type_dict, ques_type_name_dict
 from function.about_time import date_return, turn_datetime_to_longint
 from function.about_string import *
 from datetime import datetime, timedelta, date, time, timezone
 import pytz, uuid, json, random
 import os
+from question.generate import GenerateQues
 from github import Github
 
 user_ab = Blueprint('user', __name__)
@@ -104,7 +105,7 @@ class attendance(Resource):
         fromdate, todate = date_return(today, 0)
         #check user_uuid is exist
         user_record = Attendance.query.filter(Attendance.user_uuid == uuid2,\
-                Attendance.att_date>=fromdate, Attendance.att_date < todate).first()
+                Attendance.att_date>=fromdate, Attendance.att_date <= todate).first()
         if(user_record):
             return 1
         return 0
@@ -117,21 +118,23 @@ class attendance(Resource):
         except:
             return 0
         user_record = Attendance.query.filter(Attendance.user_uuid == uuid2,\
-                Attendance.att_date>=fromdate, Attendance.att_date < todate).first()
+                Attendance.att_date>=fromdate, Attendance.att_date <= todate).first()
         fromdate, todate = date_return(today, 0)
         user_record2 = Attendance.query.filter(Attendance.user_uuid == uuid2,\
-                Attendance.att_date>=fromdate, Attendance.att_date < todate).first()
+                Attendance.att_date>=fromdate, Attendance.att_date <= todate).first()
         if(user_record and not user_record2):
             target_user.att_continue+=1
-        else:
+        elif(not user_record2):
             target_user.att_continue=1
-        try:
-            new_attd = Attendance(new_att_uuid, uuid2)
-            db.session.add(new_attd)
-            db.session.commit()
-        except:
-            return 0
-        return 1
+        if(not user_record2):
+            try:
+                new_attd = Attendance(new_att_uuid, uuid2)
+                db.session.add(new_attd)
+                db.session.commit()
+            except:
+                return 0
+            return 1
+        return 0
     def delete(self, uuid2):
         today = datetime.now(pytz.timezone('Asia/Seoul'))
         fromdate, todate = date_return(today, 0)
@@ -188,7 +191,7 @@ class week_attendance(Resource):
         week_att = [0,0,0,0,0,0,0]
         for day in att_record:
             week_att[day.att_date.weekday()] = 1
-        week_att = week_att[0:today.weekday()]
+        week_att = week_att[0:today.weekday()+1]
         return week_att             
 
 @api.route('/change_today_question/')
@@ -202,7 +205,9 @@ class change_today_question(Resource):
         que_record = db.session.query(CommonQue).filter(CommonQue.ques_uuid != current_ques_uuid, CommonQue.ques_type == category).\
             order_by(func.random()).first()
         if(que_record):
-            return jsonify({"ques_uuid":que_record.ques_uuid, "question": que_record.question})
+            que_type = ques_type_name_dict[que_record.ques_type]
+            return jsonify({"ques_uuid":que_record.ques_uuid, "question": que_record.question, \
+                "ques_type": que_type})
         return 0
 
 @api.route('/suggest_common_ques/')
@@ -231,10 +236,11 @@ class first_today_question(Resource):
         category = ques_type_dict[interest_list[random.randint(0, len(interest_list)-1)]]
         que_record = db.session.query(CommonQue).filter(CommonQue.ques_type == category).\
             order_by(func.random()).first()
-        if(que_record):
-            return jsonify({"ques_uuid":que_record.ques_uuid, "question": que_record.question})
-        que_record = db.session.query(CommonQue).order_by(func.random()).first()
-        return jsonify({"ques_uuid":que_record.ques_uuid, "question": que_record.question})
+        if(not que_record):
+            que_record = db.session.query(CommonQue).order_by(func.random()).first()
+        que_type = ques_type_name_dict[que_record.ques_type]
+        return jsonify({"ques_uuid":que_record.ques_uuid, "question": que_record.question, \
+                "ques_type": que_type})
 #def __init__(self, tq_uuid, user_uuid, today_ques, user_memo="", date=)
 @api.route('/common_ques_memo/')
 class commmon_ques_memo(Resource):
@@ -303,7 +309,6 @@ class memo_list(Resource):
         return jsonify(memo_list)
 #def __init__(self, user_uuid, git_nickname, interesting_field, name, email, att_continue=0)
 
-
 @api.route('/interesting_field/<string:user_uuid>')
 class interest_list(Resource):
     def get(self, user_uuid):
@@ -336,3 +341,29 @@ class interest_list(Resource):
         except:
             return 0
         return 1
+
+
+@api.route('/make_indivisual_ques/')
+class make_indivisual_ques(Resource):
+    def post(self):
+        user_uuid = request.args.get('user_uuid')
+        script_uuid = request.args.get('script_uuid')
+        ques_num = int(request.args.get('ques_num'))
+        ques_uuid_list = SynthesisSelfIntroduction.query.get(script_uuid).question.split(',')
+        question = []
+        answer = []
+        
+        db.session.delete()
+        
+        for ques_uuid in ques_uuid_list:
+            question.append(SelfIntroductionQ.query.get(ques_uuid).question)
+            answer.append(SelfIntroductionA.query.filter(SelfIntroductionA.script_ques_uuid == ques_uuid, \
+                SelfIntroductionA.user_uuid == user_uuid).first().answer)
+            
+        ret = GenerateQues(contents_q=question, contents_a=answer, num_pairs= ques_num).genQues()
+        for i in range(3):
+            db.session.add(IndividualQue(uuid.uuid1(), user_uuid, script_uuid, ret[i]))
+        db.session.commit()
+        return ret
+        
+        

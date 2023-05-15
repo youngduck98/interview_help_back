@@ -48,14 +48,16 @@ class IndividualQue(db.Model):
     ques_uuid = db.Column(db.String(36), primary_key=True)
     user_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
     script_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), nullable=False, index=True)
+    question = db.Column(db.String(1000))
 
     SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='IndividualQue.script_uuid == SynthesisSelfIntroduction.script_uuid', backref='individual_ques')
     User = db.relationship('User', primaryjoin='IndividualQue.user_uuid == User.user_uuid', backref='individual_ques')
-    
-    def __init__(self, ques_uuid, user_uuid, script_uuid):
+
+    def __init__(self, ques_uuid, user_uuid, script_uuid, question = ""):
         self.ques_uuid = ques_uuid
         self.user_uuid = user_uuid
         self.script_uuid = script_uuid
+        self.question = question
 
 class MockInterview(db.Model):
     __tablename__ = 'MockInterview'
@@ -64,34 +66,20 @@ class MockInterview(db.Model):
     interview_host_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
     score = db.Column(db.Integer, server_default=db.FetchedValue())
     referenced_script = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), nullable=False, index=True)
-    individual_question1 = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), index=True)
-    individual_question2 = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), index=True)
-    common_question1 = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
-    common_question2 = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
-    common_question3 = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
     end_time = db.Column(db.DateTime)
     self_memo = db.Column(db.String(5000))
-        
-    CommonQue = db.relationship('CommonQue', primaryjoin='MockInterview.common_question1 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews')
-    CommonQue1 = db.relationship('CommonQue', primaryjoin='MockInterview.common_question2 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews_0')
-    CommonQue2 = db.relationship('CommonQue', primaryjoin='MockInterview.common_question3 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews_1')
-    IndividualQue = db.relationship('IndividualQue', primaryjoin='MockInterview.individual_question1 == IndividualQue.ques_uuid', backref='individualque_mock_interviews')
-    IndividualQue1 = db.relationship('IndividualQue', primaryjoin='MockInterview.individual_question2 == IndividualQue.ques_uuid', backref='individualque_mock_interviews_0')
+
     User = db.relationship('User', primaryjoin='MockInterview.interview_host_uuid == User.user_uuid', backref='mock_interviews')
     SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='MockInterview.referenced_script == SynthesisSelfIntroduction.script_uuid', backref='mock_interviews')
-    
-    def __init__(self, interview_uuid, interview_host_uuid, referenced_script, self_memo="", iq1=None, cq1=None, cq2=None, iq2=None, cq3=None, endtime=datetime.now(pytz.timezone('Asia/Seoul'))):
+
+    def __init__(self, interview_uuid, interview_host_uuid, referenced_script, self_memo="", score = -1, endtime=datetime.now(pytz.timezone('Asia/Seoul'))):
         self.interview_uuid = interview_uuid
         self.interview_host_uuid = interview_host_uuid
         self.referenced_script = referenced_script
-        self.individual_question1 = iq1
-        self.individual_question2 = iq2
-        self.common_question1 = cq1
-        self.common_question2 = cq2
-        self.common_question3 = cq3
         self.end_time = endtime
         self.self_memo = self_memo
-    
+        self.score = score
+        
 class SelfIntroductionA(db.Model):
     __tablename__ = 'SelfIntroduction_A'
 
@@ -99,15 +87,18 @@ class SelfIntroductionA(db.Model):
     user_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
     script_ques_uuid = db.Column(db.ForeignKey('SelfIntroduction_Q.script_ques_uuid'), nullable=False, index=True)
     answer = db.Column(db.String(5000))
+    script_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), index=True)
 
     SelfIntroduction_Q = db.relationship('SelfIntroductionQ', primaryjoin='SelfIntroductionA.script_ques_uuid == SelfIntroductionQ.script_ques_uuid', backref='self_introduction_as')
+    SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='SelfIntroductionA.script_uuid == SynthesisSelfIntroduction.script_uuid', backref='self_introduction_as')
     User = db.relationship('User', primaryjoin='SelfIntroductionA.user_uuid == User.user_uuid', backref='self_introduction_as')
 
-    def __init__(self, script_ans_uuid, user_uuid, script_ques_uuid, answer=""):
+    def __init__(self, script_ans_uuid, user_uuid, script_ques_uuid, answer="", script_uuid=""):
         self.script_ans_uuid = script_ans_uuid
         self.user_uuid = user_uuid
         self.script_ques_uuid = script_ques_uuid
         self.answer = answer
+        self.script_uuid = script_uuid
 
 class SelfIntroductionQ(db.Model):
     __tablename__ = 'SelfIntroduction_Q'
@@ -129,18 +120,23 @@ class SynthesisSelfIntroduction(db.Model):
 
     script_uuid = db.Column(db.String(45), primary_key=True)
     script_host = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
-    script_date = db.Column(db.String(45), nullable=False)
+    script_date = db.Column(db.DateTime, nullable=False)
     script_title = db.Column(db.String(45), nullable=False)
     question = db.Column(db.String(200))
-    
+    interview = db.Column(db.Integer, server_default=db.FetchedValue())
+    objective = db.Column(db.ForeignKey('job_object_field.object_type'), index=True, server_default=db.FetchedValue())
+
+    job_object_field = db.relationship('JobObjectField', primaryjoin='SynthesisSelfIntroduction.objective == JobObjectField.object_type', backref='synthesis_self_introductions')
     User = db.relationship('User', primaryjoin='SynthesisSelfIntroduction.script_host == User.user_uuid', backref='synthesis_self_introductions')
-    
-    def __init__(self, script_uuid, script_host, script_date, script_title, question=""):
+
+    def __init__(self, script_uuid, script_host, script_date, script_title, question="", used=0, objective=0):
         self.script_uuid = script_uuid
         self.script_host = script_host
         self.script_date = script_date
         self.script_title = script_title
         self.question = question
+        self.interview = used
+        self.objective = objective
         
 class TodayQue(db.Model):
     __tablename__ = 'TodayQues'
@@ -213,3 +209,46 @@ class CommentRecommendation(db.Model):
         self.cr_uuid = cr_uuid
         self.user_uuid = user_uuid
         self.cc_uuid = cc_uuid
+
+class InterviewQuesCommon(db.Model):
+    __tablename__ = 'interview_ques_common'
+
+    common_meta_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), nullable=False, index=True)
+    common_ques_uuid = db.Column(db.ForeignKey('CommonQues.ques_uuid'), nullable=False, index=True)
+
+    CommonQue = db.relationship('CommonQue', primaryjoin='InterviewQuesCommon.common_ques_uuid == CommonQue.ques_uuid', backref='interview_ques_commons')
+    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuesCommon.interview_uuid == IndividualQue.ques_uuid', backref='interview_ques_commons')
+    
+    def __init__(self, common_meta_uuid, interview_uuid, common_ques_uuid):
+        self.common_meta_uuid = common_meta_uuid
+        self.interview_uuid = interview_uuid
+        self.common_ques_uuid = common_ques_uuid
+
+class InterviewQuesIndividual(db.Model):
+    __tablename__ = 'interview_ques_Individual'
+
+    indiv_meta_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), nullable=False, index=True)
+    indiv_ques_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), nullable=False, index=True)
+
+    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuesIndividual.indiv_ques_uuid == IndividualQue.ques_uuid', backref='interview_ques_individuals')
+    MockInterview = db.relationship('MockInterview', primaryjoin='InterviewQuesIndividual.interview_uuid == MockInterview.interview_uuid', backref='interview_ques_individuals')
+    
+    def __init__(self, indiv_meta_uuid, interview_uuid, indiv_ques_uuid):
+        self.indiv_meta_uuid = indiv_meta_uuid
+        self.interview_uuid = interview_uuid
+        self.indiv_ques_uuid = indiv_ques_uuid
+        
+# jobobjectfield쪽 임의로 unique 옵션 추가, orm 오류 없는지 추후 확인 바람
+class JobObjectField(db.Model):
+    __tablename__ = 'job_object_field'
+
+    object_type = db.Column(db.Integer, primary_key=True, unique=True)
+    object_name = db.Column(db.String(45), unique=True)
+
+class InterestOptionField(db.Model):
+    __tablename__ = 'interest_option_field'
+
+    type = db.Column(db.Integer, primary_key=True, unique=True)
+    name = db.Column(db.String(45), unique=True)

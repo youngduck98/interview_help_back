@@ -1,6 +1,8 @@
 import sys, os, json
 from flask import Flask, request, jsonify
 
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
 from datetime import datetime
 import pytz
 import uuid
@@ -11,7 +13,7 @@ from database import module
 from database.module import Attendance, CommonQue, IndividualQue, MockInterview, \
     SelfIntroductionA, SelfIntroductionQ, SynthesisSelfIntroduction, TodayQue, \
     User, CommentRecommendation, CommunityComment
-from database.dictionary import ques_type_dict
+from database.dictionary import ques_type_dict, ques_type_name_dict
 
 from sqlalchemy.sql.expression import func
     
@@ -19,18 +21,22 @@ from flask_restx import Resource, Api
 from user_route import user_path
 from selfintro import self_intro
 from community import community
+from interview import interview
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from database import admin_view
 import MySQLdb
 #from database.module import User, Attendance, CommonQue, IndividualQue, MockInterview, SynthesisSelfIntroduction, SelfIntroductionA, SelfIntroductionQ, TodayQue, CommentRecommandation, CommunityComment
-
+for k, v in ques_type_dict.items():
+    ques_type_name_dict[v] = k
+    
 app = Flask(__name__) # app assignment
 app.config.from_object(config) # app setting config through config object(related to DB)
 db.init_app(app)
 app.register_blueprint(user_path.user_ab, url_prefix='/user')
 app.register_blueprint(self_intro.selfintro_ab, url_prefix='/self_intro')
 app.register_blueprint(community.community_ab, url_prefix='/community')
+#app.register_blueprint(interview.interview_ab, url_
 
 api = Api(app) # api that make restapi more easier
 
@@ -145,10 +151,12 @@ class user(Resource):
 class common_question(Resource):
     def get(self):
         common_ques_uuid = request.args.get('common_ques_uuid')
-        que_record = db.session.query(CommonQue).filter(CommonQue.ques_uuid == common_ques_uuid)
-        if(que_record):
-            return 1
-        return 0
+        que_record = db.session.query(CommonQue).filter(CommonQue.ques_uuid == common_ques_uuid).first()
+        if(not que_record):
+            return 0
+        ques_type = ques_type_name_dict[que_record.ques_type]
+        return jsonify({"ques_uuid": common_ques_uuid, "question": que_record.question, \
+            "ques_type": ques_type})
     def post(self):
         category = request.args.get('category')
         category = ques_type_dict[category]

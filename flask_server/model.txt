@@ -40,6 +40,7 @@ class IndividualQue(db.Model):
     ques_uuid = db.Column(db.String(36), primary_key=True)
     user_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
     script_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), nullable=False, index=True)
+    question = db.Column(db.String(1000))
 
     SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='IndividualQue.script_uuid == SynthesisSelfIntroduction.script_uuid', backref='individual_ques')
     User = db.relationship('User', primaryjoin='IndividualQue.user_uuid == User.user_uuid', backref='individual_ques')
@@ -53,19 +54,9 @@ class MockInterview(db.Model):
     interview_host_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
     score = db.Column(db.Integer, server_default=db.FetchedValue())
     referenced_script = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), nullable=False, index=True)
-    individual_question1 = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), index=True)
-    individual_question2 = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), index=True)
-    common_question1 = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
-    common_question2 = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
-    common_question3 = db.Column(db.ForeignKey('CommonQues.ques_uuid'), index=True)
     end_time = db.Column(db.DateTime)
     self_memo = db.Column(db.String(5000))
 
-    CommonQue = db.relationship('CommonQue', primaryjoin='MockInterview.common_question1 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews')
-    CommonQue1 = db.relationship('CommonQue', primaryjoin='MockInterview.common_question2 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews_0')
-    CommonQue2 = db.relationship('CommonQue', primaryjoin='MockInterview.common_question3 == CommonQue.ques_uuid', backref='commonque_commonque_mock_interviews')
-    IndividualQue = db.relationship('IndividualQue', primaryjoin='MockInterview.individual_question1 == IndividualQue.ques_uuid', backref='individualque_mock_interviews')
-    IndividualQue1 = db.relationship('IndividualQue', primaryjoin='MockInterview.individual_question2 == IndividualQue.ques_uuid', backref='individualque_mock_interviews_0')
     User = db.relationship('User', primaryjoin='MockInterview.interview_host_uuid == User.user_uuid', backref='mock_interviews')
     SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='MockInterview.referenced_script == SynthesisSelfIntroduction.script_uuid', backref='mock_interviews')
 
@@ -78,8 +69,10 @@ class SelfIntroductionA(db.Model):
     user_uuid = db.Column(db.ForeignKey('User.user_uuid'), nullable=False, index=True)
     script_ques_uuid = db.Column(db.ForeignKey('SelfIntroduction_Q.script_ques_uuid'), nullable=False, index=True)
     answer = db.Column(db.String(5000))
+    script_uuid = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), index=True)
 
     SelfIntroduction_Q = db.relationship('SelfIntroductionQ', primaryjoin='SelfIntroductionA.script_ques_uuid == SelfIntroductionQ.script_ques_uuid', backref='self_introduction_as')
+    SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='SelfIntroductionA.script_uuid == SynthesisSelfIntroduction.script_uuid', backref='self_introduction_as')
     User = db.relationship('User', primaryjoin='SelfIntroductionA.user_uuid == User.user_uuid', backref='self_introduction_as')
 
 
@@ -103,7 +96,10 @@ class SynthesisSelfIntroduction(db.Model):
     script_date = db.Column(db.DateTime, nullable=False)
     script_title = db.Column(db.String(45), nullable=False)
     question = db.Column(db.String(200))
+    interview = db.Column(db.Integer, server_default=db.FetchedValue())
+    objective = db.Column(db.ForeignKey('job_object_field.object_type'), index=True, server_default=db.FetchedValue())
 
+    job_object_field = db.relationship('JobObjectField', primaryjoin='SynthesisSelfIntroduction.objective == JobObjectField.object_type', backref='synthesis_self_introductions')
     User = db.relationship('User', primaryjoin='SynthesisSelfIntroduction.script_host == User.user_uuid', backref='synthesis_self_introductions')
 
 
@@ -306,6 +302,38 @@ t_innodb_lock_waits = db.Table(
 
 
 
+class InterestOptionField(db.Model):
+    __tablename__ = 'interest_option_field'
+
+    type = db.Column(db.Integer, primary_key=True, unique=True)
+    name = db.Column(db.String(45), unique=True)
+
+
+
+class InterviewQuesIndividual(db.Model):
+    __tablename__ = 'interview_ques_Individual'
+
+    indiv_meta_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), nullable=False, index=True)
+    indiv_ques_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), nullable=False, index=True)
+
+    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuesIndividual.indiv_ques_uuid == IndividualQue.ques_uuid', backref='interview_ques_individuals')
+    MockInterview = db.relationship('MockInterview', primaryjoin='InterviewQuesIndividual.interview_uuid == MockInterview.interview_uuid', backref='interview_ques_individuals')
+
+
+
+class InterviewQuesCommon(db.Model):
+    __tablename__ = 'interview_ques_common'
+
+    common_meta_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), nullable=False, index=True)
+    common_ques_uuid = db.Column(db.ForeignKey('CommonQues.ques_uuid'), nullable=False, index=True)
+
+    CommonQue = db.relationship('CommonQue', primaryjoin='InterviewQuesCommon.common_ques_uuid == CommonQue.ques_uuid', backref='interview_ques_commons')
+    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuesCommon.interview_uuid == IndividualQue.ques_uuid', backref='interview_ques_commons')
+
+
+
 t_io_by_thread_by_latency = db.Table(
     'io_by_thread_by_latency',
     db.Column('user', db.String(288)),
@@ -386,6 +414,14 @@ t_io_global_by_wait_by_latency = db.Table(
     db.Column('total_written', db.String(11)),
     db.Column('avg_written', db.String(11))
 )
+
+
+
+class JobObjectField(db.Model):
+    __tablename__ = 'job_object_field'
+
+    object_type = db.Column(db.Integer, primary_key=True, unique=True)
+    object_name = db.Column(db.String(45), unique=True)
 
 
 

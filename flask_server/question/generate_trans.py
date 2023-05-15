@@ -3,6 +3,7 @@ import openai
 import json
 import time
 import random
+import googletrans
 
 class GenerateQues:
     
@@ -37,36 +38,25 @@ class GenerateQues:
         return ret1
     
     def genQues(self):
-        prompt_template = "Please generate a question based on the following self-introduction:\n\n{self_introduction}"
+        prompt_template = "Please generate a question in Korean based on the following self-introduction. Don't need an answer:\n\n{self_introduction}"
         output_list = []
+        ts = googletrans.Translator()
         # 질문생성 대상이 될 자소서 질문-대답 쌍 랜덤 선택
         selected_pairs = random.sample(range(len(self.contents_q)), self.num_pairs)
-        self.contents_q = [self.contents_q[i] for i in selected_pairs]
-        self.contents_a = [self.contents_a[i] for i in selected_pairs]
-        '''
-        prompts = self.contents
-        # -*- coding: utf-8 -*-
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=prompts,
-            temperature=0.5,
-            max_tokens=1000,
-            top_p=1.0,
-            frequency_penalty=0.0,
-            presence_penalty=0.0
-        )
+        contents_q_pick = [self.contents_q[i] for i in selected_pairs]
+        contents_a_pick = [self.contents_a[i] for i in selected_pairs]
         
-        response['choices'][0]['text'] = self.parse_statement(response['choices'][0]['text'])
-        #print("-----choices 참조: ", response['choices'][0]['text'])
-        ques_list = json.dumps(response, ensure_ascii=False, indent='\t')
-        '''
+        print("Picked question: ", contents_q_pick)
+
         # 각 자기소개 질문, 답변 쌍에 대한 질문 생성
-        for i in range(len(self.contents_q)):
+        for i in range(len(contents_q_pick)):
             # 자기소개 질문과 답변을 하나의 문자열로 만듦
-            self_introduction = self.contents_q[i] + " " + self.contents_a[i]
+            q_en = ts.translate(contents_q_pick[i], src='ko', dest='en').text
+            a_en = ts.translate(contents_a_pick[i], src='ko', dest='en').text
+            self_introduction = q_en + " " + a_en
             # 자기 소개에 따라 질문을 작성
             prompt = prompt_template.format(self_introduction=self_introduction)
-            #print(prompt)
+            print(prompt)
             for j in range(self.num_responses):
                 # -*- coding: utf-8 -*-
                 response = openai.Completion.create(
@@ -80,9 +70,9 @@ class GenerateQues:
                     presence_penalty=self.presence_penalty
                 )
             
-                #print(f"Questions based on '{content_q[i]}':")
+                print(f"Questions based on '{content_q[i]}':")
                 for choice in response.choices:
-                    #print(f"- {choice.text.strip()}")
+                    print(f"- {choice.text.strip()}")
                     output_list.append(str(choice.text.strip()))
             
                 # Wait for a short time to avoid exceeding the API rate limit
@@ -121,10 +111,37 @@ if __name__ == "__main__":
             제 삶의 방향과 기준을 마련해준 법으로 연수원 5년 차에는 765production에서 법률상담을 하였고, 10년 차에는 365production에서 전문분야 연수를 하였습니다.\
             2023년 제 10기 사법연수원 수료를 앞두고 있으며 국제화시대에 걸 맞는 인재가 되기 위해 꾸준히 어학원을 다니며 어학실력을 키워 나가고 있습니다."]
     '''
+    '''
     content_q = ["What is your name?", "What do you do?", "Where are you from?", "What are your hobbies?"]
     content_a = ["My name is John.", "I'm a software engineer.", "I'm from San Francisco.", "I enjoy hiking and reading."]
+    '''
+    
+    content_q = [
+        "본인을 한 문장으로 표현한다면?",
+        "본인이 가장 좋아하는 취미는 무엇인가요?",
+        "학교에서 가장 기억에 남는 일은 무엇인가요?",
+        "자신이 속한 조직에서 가장 뿌듯한 경험은 무엇인가요?",
+        "자신의 강점을 적어보세요.",
+        "자신의 약점을 적어보세요.",
+        "본인이 얻은 성과 중 가장 자랑스러운 것은 무엇인가요?",
+        "본인이 이루고 싶은 목표는 무엇인가요?",
+        "자신이 지금까지 배운 것 중에서, 무엇이 가장 유용한 지식인가요?",
+    ]
+    
+    content_a = [
+        "저는 도전 정신이 강하며, 적극적으로 일에 임하는 것이 제 강점입니다.",
+        "저는 요리하는 것을 좋아합니다. 특히 이탈리안 음식을 만드는 것이 취미 중 하나입니다.",
+        "학교에서 가장 기억에 남는 일은 대학 축제에서 제가 주최한 댄스 대회입니다. 이를 성공적으로 마무리할 수 있어서 매우 뿌듯했습니다.",
+        "전 회사에서 가장 뿌듯한 경험은 새로운 제품을 개발한 후, 이를 성공적으로 출시했을 때입니다.",
+        "저는 빠르게 적응하는 능력과 문제 해결 능력이 강점입니다.",
+        "저는 높은 완성도를 요구하는 작업에 대해 조금 더 집중이 필요한 상황에서 시간이 걸릴 때가 있습니다.",
+        "저는 이전 회사에서 성공적으로 프로젝트를 수행하고, 이를 통해 벤처기업으로 이직할 수 있었다는 것이 가장 자랑스러운 성과입니다.",
+        "제가 이루고 싶은 목표는 전문성 있는 엔지니어가 되어, 다양한 분야에서 기술을 활용해 사회 문제를 해결하는 것입니다.",
+        "저는 프로그래밍 언어와 머신 러닝 기술을 배워서, 이를 활용해 자연어 처리 분야에서 활발하게 활동하고 싶습니다.",
+    ]
+    
     #content = "삼성 galaxy와 애플 iphone에 대한 차이점을 소프트웨어 차원에서 질문 4개 생성해줘"
-    test = GenerateQues(contents_q=content_q, contents_a=content_a, num_pairs=3) # 질문생성 객체 생성
+    test = GenerateQues(contents_q=content_q, contents_a=content_a, num_pairs=5) # 질문생성 객체 생성
     print(test.contents_q)
     print(test.contents_a)
     response = test.genQues() # 질문 생성 함수

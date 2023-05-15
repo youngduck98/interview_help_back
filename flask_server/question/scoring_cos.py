@@ -1,5 +1,14 @@
 import openai
 
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+#nltk.download('stopwords')
+#nltk.download('punkt')
+
 class ScoreAns:
     
     openai.api_key = "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"
@@ -19,17 +28,18 @@ class ScoreAns:
         self.temperature = temperature
         self.frequency_penalty = frequency_penalty
         self.presence_penalty = presence_penalty
-    
-    # openAI API를 이용해 두 문장 간 유사도 측정
+
+    # Question과 Answer 간 vectorization 후 cosine similarity 구하기
     def score_answer(self):
         scores = []
         feedbacks = []
-        prompt_template_score = "Score the following answer based on its relevance to the question:\nQuestion: {question}\nAnswer: {answer}\nScore:"
         prompt_template = "Q: {question}\nA: {answer}\n\nFeedback:"
+        #prompt_template = "Q: {question}\nA: {answer}\n\nFeedback:"
+        #prompt_template_score = "Q: {question}\nA: {answer}\nScore:"
 
         for i in range(len(self.inter_q)):
             prompt = prompt_template.format(question=self.inter_q[i], answer=self.inter_a[i])
-            prompt_score = prompt_template_score.format(question=self.inter_q[i], answer=self.inter_a[i])
+            #prompt_score = prompt_template_score.format(question=self.inter_q[i], answer=self.inter_a[i])
             
             # 피드백 생성
             response = openai.Completion.create(
@@ -41,28 +51,37 @@ class ScoreAns:
                 temperature=self.temperature,
                 frequency_penalty=self.frequency_penalty,
                 presence_penalty=self.presence_penalty,
-                #logprobs=10
+                #logprobs=0,
+                #echo=False,
+                #best_of=1,
             )
-            #print("response: ", response)
 
             # 대답으로부터 feedback 가져오기
             feedback = response.choices[0].text.strip()
+            print("{}th feedback: {}".format(i, feedback))
             
-            response_score = openai.Completion.create(
-                engine="text-davinci-002",
-                prompt=prompt_score,
-                max_tokens=1, # 유사도 점수만 반환
-                n=self.n,
-                stop=self.stop,
-                temperature=0.0, # 유사도 점수의 일관성 높이기
-            )
-            #print(response_score)
-            score = response_score.choices[0].text.strip()
-            #print("{}th score: {}".format(i, score))
+            # Preprocess question and answer
+            stop_words = set(stopwords.words('english'))
+            question_tokens = ' '.join([token.lower() for token in word_tokenize(self.inter_q[i]) if token.lower() not in stop_words])
+            answer_tokens = ' '.join([token.lower() for token in word_tokenize(self.inter_a[i]) if token.lower() not in stop_words])
+            #question_tokens = ' '.join([token.lower() for token in word_tokenize(self.inter_q[i])])
+            #answer_tokens = ' '.join([token.lower() for token in word_tokenize(self.inter_a[i])])
+            print("question_tokens: ", question_tokens)
+            print("answer_tokens: ", answer_tokens)
+            vectorizer = TfidfVectorizer()
+            vectorizer.fit([question_tokens])
+            question_vector = vectorizer.transform([question_tokens])
+            answer_vector = vectorizer.transform([answer_tokens])
+
+
+            # Calculate cosine similarity
+            #similarity = cosine_similarity([question_tokens], [answer_tokens])[0][0]
+            similarity = cosine_similarity(question_vector, answer_vector)[0][0]
+            print("similarity: ", similarity)
             
             # output list에 요소 append
             feedbacks.append(feedback)
-            scores.append(float(score))
+            scores.append(float(similarity))
 
         return scores, feedbacks
 

@@ -1,3 +1,7 @@
+"""
+flask-sqlacodegen "mysql+pymysql://admin:12345678@database-1.cf82kp3ku9xz.ap-northeast-2.rds.amazonaws.com:3306/sys" --flask > model.txt
+"""
+
 from github import Github
 
 # create a Github object, authenticated with an access token
