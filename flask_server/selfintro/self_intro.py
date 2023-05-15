@@ -151,19 +151,3 @@ class script_question(Resource):
             tips = que_record.tip.split(',')
             ret.append({"index":index, "question":question, "tips":tips})
         return ret
-
-@api.route('/job_object_list/')
-class job_object_list(Resource):
-    def get(self):
-        ret = []
-        for record in JobObjectField.query.filter().all():
-            ret.append(record.object_name)
-        return jsonify(ret)
-
-@api.route('/interest_option_list')
-class interest_option_list(Resource):
-    def get(self):
-        ret = []
-        for record in InterestOptionField.query.filter().all():
-            ret.append(record.object_name)
-        return jsonify(ret)

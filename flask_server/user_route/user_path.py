@@ -4,7 +4,7 @@ from flask_restx import Resource, Api
 from database.db_connect import db
 from database.module import Attendance, CommonQue, IndividualQue, MockInterview, \
     SelfIntroductionA, SelfIntroductionQ, SynthesisSelfIntroduction, TodayQue, \
-    User, CommentRecommendation, CommunityComment
+    User, CommentRecommendation, CommunityComment, JobObjectField, InterestOptionField
 from database.list import default_interest_list
 from database.dictionary import ques_type_dict, ques_type_name_dict
 from function.about_time import date_return, turn_datetime_to_longint
@@ -366,4 +366,18 @@ class make_indivisual_ques(Resource):
         db.session.commit()
         return ret
         
-        
+@api.route('/job_object_list/')
+class job_object_list(Resource):
+    def get(self):
+        ret = []
+        for record in JobObjectField.query.filter().all():
+            ret.append(record.object_name)
+        return jsonify(ret)
+
+@api.route('/interest_option_list')
+class interest_option_list(Resource):
+    def get(self):
+        ret = []
+        for record in InterestOptionField.query.filter().all():
+            ret.append(record.object_name)
+        return jsonify(ret)
