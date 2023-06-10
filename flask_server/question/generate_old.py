@@ -1,14 +1,32 @@
-import os
+import os, json
 import openai
 import json
 import time
 import random
-import googletrans
+
+# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# SECURITY WARNING: keep the secret key used in production secret!
+
+secret_file = os.path.join(BASE_DIR, '/home/ubuntu/gitrepo/interview_help_back/flask_server/question/secrets.json')
+
+with open(secret_file) as f:
+    secrets = json.loads(f.read())
+
+def get_secret(setting, secrets=secrets):
+    try:
+        return secrets[setting]
+    except KeyError:
+        error_msg = "Set the {} environment variable".format(setting)
+        raise ImproperlyConfigured(error_msg)
+
+SECRET_KEY = get_secret("OPENAI_KEY")
 
 class GenerateQues:
     
     #발급받은 API 키 인증
-    openai.api_key = "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"
+    openai.api_key = SECRET_KEY
     
     def __init__(self, contents_q, contents_a,
                  num_pairs,
@@ -28,6 +46,104 @@ class GenerateQues:
         self.presence_penalty = presence_penalty
         self.num_responses = num_responses
     
+    # translate english to korean by GPT
+        # translate english to korean by GPT
+    def translate_text_k2e(self, texts):
+        # Create the translation prompt
+        #prompt = "Translate the following Korean texts to English:\n" + "\n".join(texts)
+        #print("tr_prompt: ", prompt)
+        if all(item == " " for item in texts):
+            return texts # item 내 대답 길이가 5 미만인 원소에 대해서 default 질문을 넣기
+        
+        # Join sentences with a delimiter
+        delimiter = "|||" # 특정 delimiter 설정
+        text_with_delimiter = delimiter.join(texts)
+        #print(text_with_delimiter)
+        
+        # Create the translation prompt
+        if '|||' not in text_with_delimiter:
+            prompt = f"Translate the following Korean texts(Do not add any symbols) to English:\n{text_with_delimiter}"
+        else:
+            # Create the translation prompt
+            prompt = f"Translate the following Korean texts(Please do not remove the symbol '|||') to English:\n{text_with_delimiter}"
+        #print("tr_prompt: ", prompt)
+        
+        # Perform the translation using OpenAI API
+        response = openai.Completion.create(
+            engine='text-davinci-003',
+            prompt=prompt,
+            max_tokens=100*len(texts),
+            temperature=0.5,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            stop=None,
+            n=1
+        )
+    
+        # Extract the translated texts from the API response
+        #translations = [choice['text'].strip() for choice in response['choices']]
+        #translations = translations[0].split('\n')
+        #print("response: ", response)
+        
+        # Extract the translated text from the API response
+        translation = response['choices'][0]['text'].strip()
+        
+        # Split the translated text into individual sentences
+        translations = translation.split(delimiter)
+        #print("translations: ", translations)
+        
+        time.sleep(1)
+        
+        return translations
+    
+    # translate english to korean by GPT 
+    def translate_text_e2k(self, texts):
+        if all(item == " " for item in texts):
+            return texts
+        
+        # Join sentences with a delimiter
+        delimiter = "|||" # 특정 delimiter 설정
+        text_with_delimiter = delimiter.join(texts)
+        
+        # Create the translation prompt
+        if '|||' not in text_with_delimiter:
+            prompt = f"Translate the following English texts(Do not add any symbols) to Korean using high honorifics(one listener):\n{text_with_delimiter}"
+        else:
+            # Create the translation prompt
+            prompt = f"Translate the following English texts(Please do not remove the symbol '|||') to Korean using high honorifics(one listener):\n{text_with_delimiter}"
+        #print("tr_prompt: ", prompt)
+        
+        
+        # Perform the translation using OpenAI API
+        response = openai.Completion.create(
+            engine='text-davinci-003',
+            prompt=prompt,
+            max_tokens=100*len(texts),
+            temperature=0.5,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            stop=None,
+            n=1
+        )
+    
+        # Extract the translated texts from the API response
+        #translations = [choice['text'].strip() for choice in response['choices']]
+        #translations = translations[0].split('\n')
+        #print("response: ", response)
+        
+        # Extract the translated text from the API response
+        translation = response['choices'][0]['text'].strip()
+        
+        # Split the translated text into individual sentences
+        translations = translation.split(delimiter)
+        #print("translations: ", translations)
+        
+        time.sleep(1)
+        
+        return translations
+    
     def parse_statement(self, s):
         ret1 = s.split("\n")
         while len(ret1) != 0 and ret1[0] == '':
@@ -38,25 +154,47 @@ class GenerateQues:
         return ret1
     
     def genQues(self):
-        prompt_template = "Please generate a question in Korean based on the following self-introduction. Don't need an answer:\n\n{self_introduction}"
+        prompt_template = "Please generate a different question(Don't need an answer to generated questions) from the following 'Question', based on the following 'Answer' in korean:\n\n{self_introduction}"
+        #prompt_template = "다음 'Question'을 기준으로 다음 'Answer'의 내용을 포함하여 면접을 질문을 생성해 주세요.(생성된 질문에 대한 대답은 필요 없음):\n\n{self_introduction}"
         output_list = []
-        ts = googletrans.Translator()
+        #ts = googletrans.Translator()
+        
         # 질문생성 대상이 될 자소서 질문-대답 쌍 랜덤 선택
         selected_pairs = random.sample(range(len(self.contents_q)), self.num_pairs)
         contents_q_pick = [self.contents_q[i] for i in selected_pairs]
         contents_a_pick = [self.contents_a[i] for i in selected_pairs]
         
-        print("Picked question: ", contents_q_pick)
+        # Remove short strings from contents_a_pick
+        filtered_contents_a_pick = [a for a in contents_a_pick if len(a) >= 5]
+        # Create index list of short strings
+        idx = [i for i, a in enumerate(contents_a_pick) if a not in filtered_contents_a_pick]
+        filtered_contents_q_pick = [q for i, q in enumerate(contents_q_pick) if i not in idx]
+        
+        # Translate Korean questions and answers to English (pick한 질답 쌍에 대해)
+        #translated_questions = self.translate_text_k2e(contents_q_pick)
+        #translated_answers = self.translate_text_k2e(contents_a_pick)
+        #translated_questions = self.translate_text_k2e(filtered_contents_q_pick)
+        #translated_answers = self.translate_text_k2e(filtered_contents_a_pick)
+        translated_questions = filtered_contents_q_pick
+        translated_answers = filtered_contents_a_pick
+        
+        #print("Picked question: ", filtered_contents_q_pick)
 
         # 각 자기소개 질문, 답변 쌍에 대한 질문 생성
-        for i in range(len(contents_q_pick)):
-            # 자기소개 질문과 답변을 하나의 문자열로 만듦
-            q_en = ts.translate(contents_q_pick[i], src='ko', dest='en').text
-            a_en = ts.translate(contents_a_pick[i], src='ko', dest='en').text
-            self_introduction = q_en + " " + a_en
+        #for i in range(len(contents_q_pick)):
+        for i in range(len(filtered_contents_q_pick)):
+            # 자기소개 질문과 답변 하나의 문자열로 만듦
+            #q_en = ts.translate(contents_q_pick[i], src='ko', dest='en').text
+            #a_en = ts.translate(contents_a_pick[i], src='ko', dest='en').text
+            #q_en = self.translate_korean_to_english(contents_q_pick[i])
+            #a_en = self.translate_korean_to_english(contents_a_pick[i])
+            q_en = translated_questions[i]
+            a_en = translated_answers[i]
+            self_introduction = "Question: " + q_en + "\n" + "Answer: " + a_en
+            
             # 자기 소개에 따라 질문을 작성
             prompt = prompt_template.format(self_introduction=self_introduction)
-            print(prompt)
+            #print("prompt: ", prompt)
             for j in range(self.num_responses):
                 # -*- coding: utf-8 -*-
                 response = openai.Completion.create(
@@ -70,18 +208,21 @@ class GenerateQues:
                     presence_penalty=self.presence_penalty
                 )
             
-                print(f"Questions based on '{content_q[i]}':")
+                #print(f"Questions based on '{contents_q_pick[i]}':")
                 for choice in response.choices:
-                    print(f"- {choice.text.strip()}")
+                    #print(f"- {choice.text.strip()}")
                     output_list.append(str(choice.text.strip()))
             
                 # Wait for a short time to avoid exceeding the API rate limit
                 time.sleep(1)
-                
-        #ques_list = json.dumps(output_list, ensure_ascii=False, indent='\t')
-        return output_list
         
-
+        #translated_output_list = self.translate_text_e2k(output_list)
+        translated_output_list = output_list
+        for i in idx:
+            translated_output_list.insert(i, "대답 없음")
+        #ques_list = json.dumps(output_list, ensure_ascii=False, indent='\t')
+        return translated_output_list
+    
 if __name__ == "__main__":
     #print("---: ", response["choices"]["text"])
     
@@ -115,7 +256,7 @@ if __name__ == "__main__":
     content_q = ["What is your name?", "What do you do?", "Where are you from?", "What are your hobbies?"]
     content_a = ["My name is John.", "I'm a software engineer.", "I'm from San Francisco.", "I enjoy hiking and reading."]
     '''
-    
+    '''
     content_q = [
         "본인을 한 문장으로 표현한다면?",
         "본인이 가장 좋아하는 취미는 무엇인가요?",
@@ -137,13 +278,16 @@ if __name__ == "__main__":
         "저는 높은 완성도를 요구하는 작업에 대해 조금 더 집중이 필요한 상황에서 시간이 걸릴 때가 있습니다.",
         "저는 이전 회사에서 성공적으로 프로젝트를 수행하고, 이를 통해 벤처기업으로 이직할 수 있었다는 것이 가장 자랑스러운 성과입니다.",
         "제가 이루고 싶은 목표는 전문성 있는 엔지니어가 되어, 다양한 분야에서 기술을 활용해 사회 문제를 해결하는 것입니다.",
-        "저는 프로그래밍 언어와 머신 러닝 기술을 배워서, 이를 활용해 자연어 처리 분야에서 활발하게 활동하고 싶습니다.",
+        "저는 이전 회사에서 성공적으로 프로젝트를 수행하고, 이를 통해 벤처기업으로 이직할 수 있었다는 것이 가장 자랑스러운 성과입니다.",
     ]
+    '''
+    content_q = ["본인을 한 문장으로 표현한다면?", "이 회사에서 왜 당신을 채용해야 하는지, 자신의 경쟁력에 대해 구체적으로 적어주세요 ", "학교 수업이나 혹은 대외 활동을 통해 경험한 가장 잘한 프로젝트를 적어주시되 해당 프로젝트에서의 역할과 활용한 기술 및 개발방식, 그리고 어려웠던 점과 극복한 방법 등을 구체적으로 적어 주세요"]
+    content_a = ["저는 도전 정신이 강하며, 적극적으로 일에 임하는 것이 제 강점입니다.", " ", " "]
     
     #content = "삼성 galaxy와 애플 iphone에 대한 차이점을 소프트웨어 차원에서 질문 4개 생성해줘"
-    test = GenerateQues(contents_q=content_q, contents_a=content_a, num_pairs=5) # 질문생성 객체 생성
-    print(test.contents_q)
-    print(test.contents_a)
+    test = GenerateQues(contents_q=content_q, contents_a=content_a, num_pairs=2) # 질문생성 객체 생성
+    #print(test.contents_q)
+    #print(test.contents_a)
     response = test.genQues() # 질문 생성 함수
 
     print("asdf: ", response)
@@ -153,3 +297,6 @@ if __name__ == "__main__":
 
     ["Attention 메커니즘이 어떻게 자연어 처리 작업에 사용되는지?", "Attention 메커니즘은 어떤 기능을 가지고 있는가?", "Attention 메커니즘을 사용하면 어떤 이점이 있는가?"]
     '''
+    
+    ['I have a strong sense of challenge and actively engaging in work is my strength. I like cooking, especially making Italian food is one of my hobbies. The most memorable thing in school was the dance competition that I hosted in the university festival. The most rewarding experience in my previous company was when we successfully launched a new product. My strengths are the ability to adapt quickly and problem-solving skills. There are times when I need to focus more on tasks that require high completion. My proudest accomplishment is that I successfully completed projects in my previous company and was able to transfer to a venture company. My goal is to become a professional engineer and use technology to solve social problems in various fields. I am learning programming languages and machine learning technologies to actively participate in natural language processing.']
+   

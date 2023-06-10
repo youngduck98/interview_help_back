@@ -68,6 +68,7 @@ class MockInterview(db.Model):
     referenced_script = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), nullable=False, index=True)
     end_time = db.Column(db.DateTime)
     self_memo = db.Column(db.String(5000))
+    total_duration = db.Column(db.Integer)
 
     User = db.relationship('User', primaryjoin='MockInterview.interview_host_uuid == User.user_uuid', backref='mock_interviews')
     SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='MockInterview.referenced_script == SynthesisSelfIntroduction.script_uuid', backref='mock_interviews')
@@ -125,11 +126,12 @@ class SynthesisSelfIntroduction(db.Model):
     question = db.Column(db.String(200))
     interview = db.Column(db.Integer, server_default=db.FetchedValue())
     objective = db.Column(db.ForeignKey('job_object_field.object_type'), index=True, server_default=db.FetchedValue())
-
+    interview_ready = db.Column(db.Integer, server_default=db.FetchedValue())
+    
     job_object_field = db.relationship('JobObjectField', primaryjoin='SynthesisSelfIntroduction.objective == JobObjectField.object_type', backref='synthesis_self_introductions')
     User = db.relationship('User', primaryjoin='SynthesisSelfIntroduction.script_host == User.user_uuid', backref='synthesis_self_introductions')
 
-    def __init__(self, script_uuid, script_host, script_date, script_title, question="", used=0, objective=0):
+    def __init__(self, script_uuid, script_host, script_date, script_title, question="", used=0, objective=0, interview_ready=0):
         self.script_uuid = script_uuid
         self.script_host = script_host
         self.script_date = script_date
@@ -137,6 +139,7 @@ class SynthesisSelfIntroduction(db.Model):
         self.question = question
         self.interview = used
         self.objective = objective
+        self.interview_ready = interview_ready
         
 class TodayQue(db.Model):
     __tablename__ = 'TodayQues'
@@ -214,16 +217,18 @@ class InterviewQuesCommon(db.Model):
     __tablename__ = 'interview_ques_common'
 
     common_meta_uuid = db.Column(db.String(36), primary_key=True)
-    interview_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), nullable=False, index=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), nullable=False, index=True)
     common_ques_uuid = db.Column(db.ForeignKey('CommonQues.ques_uuid'), nullable=False, index=True)
-
-    CommonQue = db.relationship('CommonQue', primaryjoin='InterviewQuesCommon.common_ques_uuid == CommonQue.ques_uuid', backref='interview_ques_commons')
-    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuesCommon.interview_uuid == IndividualQue.ques_uuid', backref='interview_ques_commons')
+    index = db.Column(db.Integer, server_default=db.FetchedValue())
     
-    def __init__(self, common_meta_uuid, interview_uuid, common_ques_uuid):
+    CommonQue = db.relationship('CommonQue', primaryjoin='InterviewQuesCommon.common_ques_uuid == CommonQue.ques_uuid', backref='interview_ques_commons')
+    MockInterview = db.relationship('MockInterview', primaryjoin='InterviewQuesCommon.interview_uuid == MockInterview.interview_uuid', backref='interview_ques_commons')
+
+    def __init__(self, common_meta_uuid, interview_uuid, common_ques_uuid, index=0):
         self.common_meta_uuid = common_meta_uuid
         self.interview_uuid = interview_uuid
         self.common_ques_uuid = common_ques_uuid
+        self.index = index
 
 class InterviewQuesIndividual(db.Model):
     __tablename__ = 'interview_ques_Individual'
@@ -231,16 +236,17 @@ class InterviewQuesIndividual(db.Model):
     indiv_meta_uuid = db.Column(db.String(36), primary_key=True)
     interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), nullable=False, index=True)
     indiv_ques_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), nullable=False, index=True)
-
+    index = db.Column(db.Integer, server_default=db.FetchedValue())
+    
     IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuesIndividual.indiv_ques_uuid == IndividualQue.ques_uuid', backref='interview_ques_individuals')
     MockInterview = db.relationship('MockInterview', primaryjoin='InterviewQuesIndividual.interview_uuid == MockInterview.interview_uuid', backref='interview_ques_individuals')
     
-    def __init__(self, indiv_meta_uuid, interview_uuid, indiv_ques_uuid):
+    def __init__(self, indiv_meta_uuid, interview_uuid, indiv_ques_uuid, index):
         self.indiv_meta_uuid = indiv_meta_uuid
         self.interview_uuid = interview_uuid
         self.indiv_ques_uuid = indiv_ques_uuid
-        
-# jobobjectfield쪽 임의로 unique 옵션 추가, orm 오류 없는지 추후 확인 바람
+        self.index = index
+
 class JobObjectField(db.Model):
     __tablename__ = 'job_object_field'
 
@@ -252,3 +258,84 @@ class InterestOptionField(db.Model):
 
     type = db.Column(db.Integer, primary_key=True, unique=True)
     name = db.Column(db.String(45), unique=True)
+    
+class UserInterest(db.Model):
+    __tablename__ = 'user_interest'
+    user_uuid = db.Column(db.String(36), db.ForeignKey('User.user_uuid'), primary_key=True, nullable=False, index=True)
+    interest_type = db.Column(db.Integer, db.ForeignKey('interest_option_field.type'), primary_key=True, nullable=False, index=True)
+    
+    def __init__(self, user_uuid, interest_type):
+        self.user_uuid = user_uuid
+        self.interest_type = interest_type
+
+class AnsScore(db.Model):
+    __tablename__ = 'ans_score'
+
+    as_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), index=True)
+    question = db.Column(db.String(1000))
+    answer = db.Column(db.String(10000))
+    feedback = db.Column(db.String(5000))
+    score = db.Column(db.Integer)
+    duration = db.Column(db.Integer)
+    index = db.Column(db.Integer, server_default=db.FetchedValue())
+    duration_warning = db.Column(db.Integer)
+    
+    MockInterview = db.relationship('MockInterview', \
+        primaryjoin='AnsScore.interview_uuid == MockInterview.interview_uuid', backref='ans_scores')
+    
+    def __init__(self, as_uuid, interview_uuid, question, answer, feedback, \
+        score, duration, index=0, duration_warning=0):
+        self.as_uuid = as_uuid
+        self.interview_uuid = interview_uuid
+        self.question = question
+        self.answer = answer
+        self.feedback = feedback
+        self.score = score
+        self.duration = duration
+        self.index = index
+        self.duration_warning = duration_warning
+    
+class BadExpression(db.Model):
+    __tablename__ = 'bad_expression'
+
+    be_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), index=True)
+    expression = db.Column(db.String(45))
+    num = db.Column(db.Integer)
+
+    MockInterview = db.relationship('MockInterview', \
+        primaryjoin='BadExpression.interview_uuid == MockInterview.interview_uuid', \
+            backref='bad_expressions')
+    
+    def __init__(self, be_uuid, interview_uuid, expression, num=0):
+        self.be_uuid = be_uuid
+        self.interview_uuid = interview_uuid
+        self.expression = expression
+        self.num = num
+    
+class BadPose(db.Model):
+    __tablename__ = 'bad_pose'
+
+    bp_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), index=True)
+    pose = db.Column(db.String(45))
+    num = db.Column(db.String(45))
+
+    MockInterview = db.relationship('MockInterview', \
+        primaryjoin='BadPose.interview_uuid == MockInterview.interview_uuid',\
+            backref='bad_poses')
+    
+    def __init__(self, bp_uuid, interview_uuid, pose, num=0):
+        self.bp_uuid = bp_uuid
+        self.interview_uuid = interview_uuid
+        self.pose = pose
+        self.num = num
+
+class InterestObjectRelation(db.Model):
+    __tablename__ = 'interest_object_relation'
+    
+    interest_type = db.Column(db.Integer, db.ForeignKey('interest_option_field.type'), \
+        primary_key=True, nullable=False, index=True)
+    object_type = db.Column(db.Integer, db.ForeignKey('job_object_field'), \
+        primary_key=True, nullable=False, index=True)

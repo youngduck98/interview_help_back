@@ -7,7 +7,7 @@ from database.module import Attendance, CommonQue, IndividualQue, MockInterview,
     User, CommentRecommendation, CommunityComment
 from database.list import default_interest_list
 from database.dictionary import ques_type_dict
-from function.about_time import date_return, turn_datetime_to_longint
+from function.about_time import date_return, turn_datetime_to_longint, today_return
 from datetime import datetime, timedelta, date, time, timezone
 import pytz, uuid, json, random
 
@@ -49,7 +49,7 @@ class view_comment(Resource):
                 
             ret.append({"cc_uuid":cr.cc_uuid,\
                 "user_uuid":cr.user_uuid, "common_ques":cr.common_ques, \
-                        "comment":cr.comment, "date":int(cr.date.timestamp()*1000), \
+                        "comment":cr.comment, "date":int(turn_datetime_to_longint(cr.date)), \
                             "recommendation":cr.recommendation, "name": ur.name, \
                                 "email":ur.email, "viewer_liked": vw_liked})
         
@@ -113,7 +113,7 @@ class comment(Resource):
             return None
         user_record = User.query.get(user_uuid)
         return jsonify({"user_uuid": user_uuid, "cc_uuid": cc_uuid, "common_ques": ques_uuid,\
-                "comment": comment, "date": int(datetime.now(pytz.timezone('Asia/Seoul')).timestamp() * 1000), \
+                "comment": comment, "date": int(today_return()), \
                     "recommendation": 0, "name": user_record.name, "email": user_record.email, \
                         "viewer_liked": False})
     def put(self):
@@ -129,7 +129,7 @@ class comment(Resource):
         
         user_record = User.query.get(cc_record.user_uuid)
         return jsonify({"user_uuid": cc_record.user_uuid, "cc_uuid": cc_uuid, "common_ques": cc_record.common_ques,\
-                "comment": comment, "date": int(datetime.now(pytz.timezone('Asia/Seoul')).timestamp() * 1000), \
+                "comment": comment, "date": int(today_return()), \
                     "recommendation": 0, "name": user_record.name, "email": user_record.email, \
                         "viewer_liked": False})
     def delete(self):
@@ -163,8 +163,9 @@ class my_comment(Resource):
                 CommentRecommendation.user_uuid == user_uuid).first()
             if(cr): vw_liked = True
             else: vw_liked = False
+            
             ret.append({"user_uuid": user_uuid, "cc_uuid": record.cc_uuid, "common_ques": record.common_ques,\
-                "comment": record.comment, "date": int(record.date.timestamp()) * 1000, \
+                "comment": record.comment, "date": int(turn_datetime_to_longint(record.date)), \
                     "recommendation": record.recommendation, "name": user.name, "email": user.email, \
                         "viewer_liked": vw_liked})
         
@@ -176,9 +177,12 @@ class my_comment(Resource):
         user_uuid = request.args.get('user_uuid')
         ques_uuid = request.args.get('ques_uuid')
         record = CommunityComment.query.filter(CommunityComment.user_uuid == user_uuid, \
-            CommunityComment.common_ques).first()
+            CommunityComment.common_ques == ques_uuid).first()
+        if not record:
+            return None
         user = User.query.get(user_uuid)
-        
+        if not user:
+            return None
         cr = CommentRecommendation.query.filter(CommentRecommendation.cc_uuid == ques_uuid, \
                 CommentRecommendation.user_uuid == user_uuid).first()
             
@@ -188,6 +192,6 @@ class my_comment(Resource):
             vw_liked = False
         
         return jsonify({"user_uuid": user_uuid, "cc_uuid": record.cc_uuid, "common_ques": record.common_ques,\
-                "comment": record.comment, "date": int(record.date.timestamp() * 1000), \
+                "comment": record.comment, "date": int(turn_datetime_to_longint(record.date)), \
                     "recommendation": record.recommendation, "name": user.name, "email": user.email, \
                         "viewer_liked": vw_liked})

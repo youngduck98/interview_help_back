@@ -54,63 +54,66 @@ class GenerateQues:
         prompt = "Translate the following Korean texts to English:\n" + "\n" + texts
         #print("tr_prompt: ", prompt)
         
-        while True:
-            try:
-                # Perform the translation using OpenAI API
-                response = openai.Completion.create(
-                    engine='text-davinci-003',
-                    prompt=prompt,
-                    max_tokens=500,
-                    temperature=0.1,
-                    top_p=1.0,
-                    frequency_penalty=0.0,
-                    presence_penalty=0.0,
-                    n=1,
-                )
-            
-                # Extract the translated text from the API response
-                translation = response['choices'][0]['text'].strip()
-
-                return translation
-            except openai.error.RateLimitError:
-                print("RateLimitError occurred. Retrying in 1 second...")
-                time.sleep(1)
+        # Perform the translation using OpenAI API
+        response = openai.Completion.create(
+            engine='text-davinci-003',
+            prompt=prompt,
+            max_tokens=500,
+            temperature=0.1,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            n=1,
+        )
+    
+        # Extract the translated texts from the API response
+        #translations = [choice['text'].strip() for choice in response['choices']]
+        #translations = translations[0].split('\n')
+        #print("response: ", response)
+        
+        # Extract the translated text from the API response
+        translation = response['choices'][0]['text'].strip()
+        
+        # Split the translated text into individual sentences
+        #translations = translation.split(delimiter)
+        #print("translations: ", translation)
+        
+        time.sleep(1)
+        
+        return translation
     
     # translate english to korean by GPT
     def translate_text_e2k(self, texts):
         prompt = "Translate the following English texts(Do not add any symbols) to Korean without changing IT jargon using high honorifics(one listener):\n" + "\n" + texts
         #print("tr_prompt: ", prompt)
-
-        while True:
-            try:
-                # Perform the translation using OpenAI API
-                response = openai.Completion.create(
-                    engine='text-davinci-003',
-                    prompt=prompt,
-                    max_tokens=300,
-                    temperature=0.1,
-                    top_p=1.0,
-                    frequency_penalty=0.0,
-                    presence_penalty=0.0,
-                    n=1
-                )
-            
-                # Extract the translated texts from the API response
-                #translations = [choice['text'].strip() for choice in response['choices']]
-                #translations = translations[0].split('\n')
-                #print("response: ", response)
-                
-                # Extract the translated text from the API response
-                translation = response['choices'][0]['text'].strip()
-                
-                # Split the translated text into individual sentences
-                #translations = translation.split(delimiter)
-                #print("translations: ", translation)
-                
-                return translation
-            except openai.error.RateLimitError:
-                print("RateLimitError occurred. Retrying in 1 second...")
-                time.sleep(1)
+        
+        # Perform the translation using OpenAI API
+        response = openai.Completion.create(
+            engine='text-davinci-003',
+            prompt=prompt,
+            max_tokens=100,
+            temperature=0.1,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            n=1
+        )
+    
+        # Extract the translated texts from the API response
+        #translations = [choice['text'].strip() for choice in response['choices']]
+        #translations = translations[0].split('\n')
+        #print("response: ", response)
+        
+        # Extract the translated text from the API response
+        translation = response['choices'][0]['text'].strip()
+        
+        # Split the translated text into individual sentences
+        #translations = translation.split(delimiter)
+        #print("translations: ", translation)
+        
+        time.sleep(1)
+        
+        return translation
     
     
     def parse_statement(self, s):
@@ -163,29 +166,25 @@ class GenerateQues:
             prompt = prompt_template.format(self_introduction=self_introduction)
             #print("prompt: ", prompt)
             for j in range(self.num_responses):
-                while True:
-                    try:
-                        # -*- coding: utf-8 -*-
-                        response = openai.Completion.create(
-                            engine="text-davinci-003",
-                            prompt=prompt,
-                            temperature=self.temperature,
-                            max_tokens=self.max_tokens,
-                            n=1,
-                            stop=None,
-                            frequency_penalty=self.frequency_penalty,
-                            presence_penalty=self.presence_penalty
-                        )
-                    
-                        #print(f"Questions based on '{contents_q_pick[i]}':")
-                        for choice in response.choices:
-                            #print(f"- {choice.text.strip()}")
-                            output_list.append(str(choice.text.strip()))
-                    
-                        break
-                    except openai.error.RateLimitError:
-                        print("RateLimitError occurred. Retrying in 1 second...")
-                        time.sleep(1)
+                # -*- coding: utf-8 -*-
+                response = openai.Completion.create(
+                    engine="text-davinci-003",
+                    prompt=prompt,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    n=1,
+                    stop=None,
+                    frequency_penalty=self.frequency_penalty,
+                    presence_penalty=self.presence_penalty
+                )
+            
+                #print(f"Questions based on '{contents_q_pick[i]}':")
+                for choice in response.choices:
+                    #print(f"- {choice.text.strip()}")
+                    output_list.append(str(choice.text.strip()))
+            
+                # Wait for a short time to avoid exceeding the API rate limit
+                time.sleep(1)
         
         
         translated_output_list=[]

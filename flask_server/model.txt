@@ -56,6 +56,7 @@ class MockInterview(db.Model):
     referenced_script = db.Column(db.ForeignKey('SynthesisSelfIntroduction.script_uuid'), nullable=False, index=True)
     end_time = db.Column(db.DateTime)
     self_memo = db.Column(db.String(5000))
+    total_duration = db.Column(db.Integer)
 
     User = db.relationship('User', primaryjoin='MockInterview.interview_host_uuid == User.user_uuid', backref='mock_interviews')
     SynthesisSelfIntroduction = db.relationship('SynthesisSelfIntroduction', primaryjoin='MockInterview.referenced_script == SynthesisSelfIntroduction.script_uuid', backref='mock_interviews')
@@ -127,6 +128,47 @@ class User(db.Model):
     name = db.Column(db.String(100))
     email = db.Column(db.String(200))
     att_continue = db.Column(db.Integer, server_default=db.FetchedValue())
+
+
+
+class AnsScore(db.Model):
+    __tablename__ = 'ans_score'
+
+    as_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), index=True)
+    question = db.Column(db.String(1000))
+    answer = db.Column(db.String(10000))
+    feedback = db.Column(db.String(5000))
+    score = db.Column(db.Integer)
+    duration = db.Column(db.Integer)
+    index = db.Column(db.Integer, server_default=db.FetchedValue())
+    duration_warning = db.Column(db.Integer)
+
+    MockInterview = db.relationship('MockInterview', primaryjoin='AnsScore.interview_uuid == MockInterview.interview_uuid', backref='ans_scores')
+
+
+
+class BadExpression(db.Model):
+    __tablename__ = 'bad_expression'
+
+    be_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), index=True)
+    expression = db.Column(db.String(45))
+    num = db.Column(db.Integer)
+
+    MockInterview = db.relationship('MockInterview', primaryjoin='BadExpression.interview_uuid == MockInterview.interview_uuid', backref='bad_expressions')
+
+
+
+class BadPose(db.Model):
+    __tablename__ = 'bad_pose'
+
+    bp_uuid = db.Column(db.String(36), primary_key=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), index=True)
+    pose = db.Column(db.String(45))
+    num = db.Column(db.String(45))
+
+    MockInterview = db.relationship('MockInterview', primaryjoin='BadPose.interview_uuid == MockInterview.interview_uuid', backref='bad_poses')
 
 
 
@@ -302,11 +344,22 @@ t_innodb_lock_waits = db.Table(
 
 
 
+t_interest_object_relation = db.Table(
+    'interest_object_relation',
+    db.Column('interest_type', db.ForeignKey('interest_option_field.type'), primary_key=True, nullable=False),
+    db.Column('object_type', db.ForeignKey('job_object_field.object_type'), primary_key=True, nullable=False, index=True)
+)
+
+
+
 class InterestOptionField(db.Model):
     __tablename__ = 'interest_option_field'
 
-    type = db.Column(db.Integer, primary_key=True, unique=True)
+    type = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(45), unique=True)
+
+    job_object_field = db.relationship('JobObjectField', secondary='interest_object_relation', backref='interest_option_fields')
+    User = db.relationship('User', secondary='user_interest', backref='interest_option_fields')
 
 
 
@@ -316,6 +369,7 @@ class InterviewQuesIndividual(db.Model):
     indiv_meta_uuid = db.Column(db.String(36), primary_key=True)
     interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), nullable=False, index=True)
     indiv_ques_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), nullable=False, index=True)
+    index = db.Column(db.Integer, server_default=db.FetchedValue())
 
     IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuesIndividual.indiv_ques_uuid == IndividualQue.ques_uuid', backref='interview_ques_individuals')
     MockInterview = db.relationship('MockInterview', primaryjoin='InterviewQuesIndividual.interview_uuid == MockInterview.interview_uuid', backref='interview_ques_individuals')
@@ -326,11 +380,12 @@ class InterviewQuesCommon(db.Model):
     __tablename__ = 'interview_ques_common'
 
     common_meta_uuid = db.Column(db.String(36), primary_key=True)
-    interview_uuid = db.Column(db.ForeignKey('IndividualQues.ques_uuid'), nullable=False, index=True)
+    interview_uuid = db.Column(db.ForeignKey('MockInterview.interview_uuid'), nullable=False, index=True)
     common_ques_uuid = db.Column(db.ForeignKey('CommonQues.ques_uuid'), nullable=False, index=True)
+    index = db.Column(db.Integer, server_default=db.FetchedValue())
 
     CommonQue = db.relationship('CommonQue', primaryjoin='InterviewQuesCommon.common_ques_uuid == CommonQue.ques_uuid', backref='interview_ques_commons')
-    IndividualQue = db.relationship('IndividualQue', primaryjoin='InterviewQuesCommon.interview_uuid == IndividualQue.ques_uuid', backref='interview_ques_commons')
+    MockInterview = db.relationship('MockInterview', primaryjoin='InterviewQuesCommon.interview_uuid == MockInterview.interview_uuid', backref='interview_ques_commons')
 
 
 
@@ -887,6 +942,14 @@ class UserInfo(db.Model):
 
     user_uuid = db.Column(db.String(45), primary_key=True, server_default=db.FetchedValue())
     git_nickname = db.Column(db.String(45), server_default=db.FetchedValue())
+
+
+
+t_user_interest = db.Table(
+    'user_interest',
+    db.Column('user_uuid', db.ForeignKey('User.user_uuid'), primary_key=True, nullable=False, index=True),
+    db.Column('interest_type', db.ForeignKey('interest_option_field.type'), primary_key=True, nullable=False, index=True)
+)
 
 
 

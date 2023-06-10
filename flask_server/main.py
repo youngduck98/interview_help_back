@@ -1,3 +1,4 @@
+ # -*- coding: utf8 -*-
 import sys, os, json
 from flask import Flask, request, jsonify
 
@@ -12,10 +13,11 @@ from database.db_connect import db
 from database import module
 from database.module import Attendance, CommonQue, IndividualQue, MockInterview, \
     SelfIntroductionA, SelfIntroductionQ, SynthesisSelfIntroduction, TodayQue, \
-    User, CommentRecommendation, CommunityComment
-from database.dictionary import ques_type_dict, ques_type_name_dict
+    User, CommentRecommendation, CommunityComment, InterestOptionField
 
 from sqlalchemy.sql.expression import func
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
     
 from flask_restx import Resource, Api
 from user_route import user_path
@@ -27,16 +29,15 @@ from flask_admin.contrib.sqla import ModelView
 from database import admin_view
 import MySQLdb
 #from database.module import User, Attendance, CommonQue, IndividualQue, MockInterview, SynthesisSelfIntroduction, SelfIntroductionA, SelfIntroductionQ, TodayQue, CommentRecommandation, CommunityComment
-for k, v in ques_type_dict.items():
-    ques_type_name_dict[v] = k
-    
+
+        
 app = Flask(__name__) # app assignment
 app.config.from_object(config) # app setting config through config object(related to DB)
 db.init_app(app)
 app.register_blueprint(user_path.user_ab, url_prefix='/user')
 app.register_blueprint(self_intro.selfintro_ab, url_prefix='/self_intro')
 app.register_blueprint(community.community_ab, url_prefix='/community')
-#app.register_blueprint(interview.interview_ab, url_
+app.register_blueprint(interview.interview_ab, url_prefix='/interview')
 
 api = Api(app) # api that make restapi more easier
 
@@ -132,6 +133,8 @@ class user(Resource):
         email = request.get_json()['email']
         try:
             new_user = User(user_uuid, new_git_nickname, new_interesting_field, name, email, 0)
+            #if db changed
+            #new_user = User(user_uuid, new_git_nickname, name, email, 0)
             db.session.add(new_user)
             db.session.commit()
         except:
@@ -154,6 +157,10 @@ class common_question(Resource):
         que_record = db.session.query(CommonQue).filter(CommonQue.ques_uuid == common_ques_uuid).first()
         if(not que_record):
             return 0
+        
+        interestfield_record = InterestOptionField.query.all()
+        ques_type_name_dict = {x.type:x.name for x in interestfield_record}
+        
         ques_type = ques_type_name_dict[que_record.ques_type]
         return jsonify({"ques_uuid": common_ques_uuid, "question": que_record.question, \
             "ques_type": ques_type})
@@ -190,5 +197,13 @@ class gpttest(Resource):
         
         return script_uuid
 
+"""
+({"index":que_record.index, "script_item_uuid":que_record.script_ques_uuid,\
+            "script_item_question":que_record.question, \
+                "script_item_answer": answer, \
+                    "script_item_answer_max_length": que_record.max_answer_len, \
+                    "tips":tips})
+"""
+        
 if __name__ == "__main__":
     app.run(host = "0.0.0.0")
