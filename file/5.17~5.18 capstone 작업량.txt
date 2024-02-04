@@ -1,0 +1,184 @@
+1.get interview/interview_questionnare/?user_uuid=<str>&script_uuid=<str>&role=<str>&reuse=0or1
+reuse를 1으로 두면 db를 탐색하여 가장 최근의 설문지를 꺼내옴
+reuse를 0으로 두면 새로운 질문지(Mockinterview, interviewquescommon, interviewquesindiv)를 db에 넣고 이후 과정은 reuse를 1로 설정하였을 때와 같음.
+ex)
+http://13.125.207.34:5000/interview/interview_questionnare/?user_uuid=00001&script_uuid=00001&role="서버관리"&reuse=1
+result:
+{
+    "questionnaire_uuid": "b836ad0c-f4fa-11ed-8e45-b122ef4b565b",
+    "questions": [
+        {
+            "ques_type": 0,
+            "question": "say your vision related to our company's work",
+            "question_uuid": "00001"
+        },
+        {
+            "ques_type": 0,
+            "question": "java example question",
+            "question_uuid": "00003"
+        },
+        {
+            "ques_type": 0,
+            "question": "c++ example question",
+            "question_uuid": "00004"
+        },
+        {
+            "ques_type": 1,
+            "question": "What do you do for a living, John?",
+            "question_uuid": "a6a6b966-ebeb-11ed-99c3-6b4d8d372f9c"
+        },
+        {
+            "ques_type": 1,
+            "question": "What brought you to San Francisco?",
+            "question_uuid": "a6a6b964-ebeb-11ed-99c3-6b4d8d372f9c"
+        }
+    ]
+}
+
+2. post http://13.125.207.34:5000/interview/make_interview_result
+미리 알아두어야 할 정보:
+emotion_type = ["분노", "역겨움", "공포", "슬픔"]
+pose_type = ["불필요한 얼굴 터치", "불안정한 자세(비대칭)"]
+인터뷰 보고서를 back으로 전달하고 그에 따른 인터뷰 결과를 가져온다.
+ex)
+http://13.125.207.34:5000/interview/make_interview_result
+{
+  "questionnaireUUID":"b836ad0c-f4fa-11ed-8e45-b122ef4b565b",
+  "badExpressions" : [2, 0, 3, 4],
+  "badPose" : [3, 1],
+  "progress" : 1.00,
+  "durations":[10000, 20000, 15000, 20000, 15000],
+  "answers": [{"answerUUID":"00006", 
+               "questionUUID":"a6a6b966-ebeb-11ed-99c3-6b4d8d372f9c",
+               "answer":"answer1", 
+               "question" : "question1"}, 
+              {"answerUUID":"00007", 
+               "questionUUID":"a6a6b964-ebeb-11ed-99c3-6b4d8d372f9c",
+               "answer":"answer2",
+               "question" : "question2"},
+              {"answerUUID":"00008", 
+               "questionUUID":"00001",
+               "answer":"answer3", 
+               "question" : "question3"},
+              {"answerUUID":"00009", 
+               "questionUUID":"00003",
+               "answer":"answer4", 
+               "question" : "question4"},
+              {"answerUUID":"00010", 
+               "questionUUID":"00004",
+               "answer":"answer5", 
+               "question" : "question5"}
+             ]
+}
+
+result: 
+{
+    "badExpressions": [
+        2,
+        0,
+        3,
+        4
+    ],
+    "badPoses": [
+        3,
+        1
+    ],
+    "feedbackList": [
+        {
+            "answer": "answer1",
+            "duration": 10000,
+            "durationWarning": true,
+            "feedback": "a",
+            "question": "question1"
+        },
+        {
+            "answer": "answer2",
+            "duration": 20000,
+            "durationWarning": true,
+            "feedback": "b",
+            "question": "question2"
+        },
+        {
+            "answer": "answer3",
+            "duration": 15000,
+            "durationWarning": true,
+            "feedback": "c",
+            "question": "question3"
+        },
+        {
+            "answer": "answer4",
+            "duration": 20000,
+            "durationWarning": true,
+            "feedback": "d",
+            "question": "question4"
+        },
+        {
+            "answer": "answer5",
+            "duration": 15000,
+            "durationWarning": true,
+            "feedback": "e",
+            "question": "question5"
+        }
+    ],
+    "interviewDate": 1684362874284,
+    "interviewUUID": "b836ad0c-f4fa-11ed-8e45-b122ef4b565b",
+    "rank": "C",
+    "totalDuration": 80000
+}
+
+3. http://13.125.207.34:5000/self_intro/all_question/
+result:
+[
+    {
+        "index": 1,
+        "script_item_answer": "",
+        "script_item_answer_max_length": 2500,
+        "script_item_question": "What is your name?",
+        "script_item_uuid": "00001",
+        "tips": [
+            "a",
+            "b",
+            "c"
+        ]
+    },
+    {
+        "index": 2,
+        "script_item_answer": "",
+        "script_item_answer_max_length": 2500,
+        "script_item_question": "What do you do?",
+        "script_item_uuid": "00002",
+        "tips": [
+            ""
+        ]
+    },
+    {
+        "index": 3,
+        "script_item_answer": "",
+        "script_item_answer_max_length": 2500,
+        "script_item_question": "Where are you from?",
+        "script_item_uuid": "00003",
+        "tips": [
+            ""
+        ]
+    },
+    {
+        "index": 4,
+        "script_item_answer": "",
+        "script_item_answer_max_length": 2500,
+        "script_item_question": "What are your hobbies?",
+        "script_item_uuid": "00004",
+        "tips": [
+            ""
+        ]
+    },
+    {
+        "index": 5,
+        "script_item_answer": "",
+        "script_item_answer_max_length": 2500,
+        "script_item_question": "What do you think is the best virtue?",
+        "script_item_uuid": "00005",
+        "tips": [
+            ""
+        ]
+    }
+]

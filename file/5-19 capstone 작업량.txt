@@ -1,0 +1,153 @@
+1. get interview/memo/?user_uuid=<str>&interview_uuid=<str>
+-> 해당 인터뷰에 유저가 남긴 memo를 불러온다. 
+-> 일치하는 정보를 찾지 못한 경우에는 false retrun
+ex)
+http://13.125.207.34:5000/interview/memo/?user_uuid=00001&interview_uuid=b836ad0c-f4fa-11ed-8e45-b122ef4b565b
+result:
+"interview_memo_example"
+
+2. post interview/memo/?user_uuid=<str>&interview_uuid=<str>
+json_input: "memo": str
+-> 해당 인터뷰에 memo를 남기거나 수정한다.
+-> 문제가 생겼을 경우 false return
+ex)
+http://13.125.207.34:5000/interview/memo/?user_uuid=00001&interview_uuid=b836ad0c-f4fa-11ed-8e45-b122ef4b565b
+{
+  "memo": "interview_memo_example"
+}
+result:
+true
+
+3. get interview/make_interview_result/?interview_uuid=str
+-> 해당 interview의 정보를 가지고 온다.
+-> 문제가 생겼을 경우 false return
+ex) http://13.125.207.34:5000/interview/make_interview_result/?interview_uuid=b836ad0c-f4fa-11ed-8e45-b122ef4b565b
+result:
+{
+    "badExpressions": [
+        2,
+        0,
+        3,
+        4
+    ],
+    "badPoses": [
+        "3",
+        "1"
+    ],
+    "feedbackList": [
+        {
+            "answer": "answer1",
+            "duration": 10000,
+            "durationWarning": null,
+            "feedback": "a",
+            "question": "question1"
+        },
+        {
+            "answer": "answer2",
+            "duration": 20000,
+            "durationWarning": null,
+            "feedback": "b",
+            "question": "question2"
+        },
+        {
+            "answer": "answer3",
+            "duration": 20000,
+            "durationWarning": null,
+            "feedback": "c",
+            "question": "question3"
+        },
+        {
+            "answer": "answer4",
+            "duration": 15000,
+            "durationWarning": null,
+            "feedback": "d",
+            "question": "question4"
+        },
+        {
+            "answer": "answer5",
+            "duration": 10000,
+            "durationWarning": null,
+            "feedback": "e",
+            "question": "question5"
+        }
+    ],
+    "interviewDate": "Thu, 18 May 2023 06:29:06 GMT",
+    "interviewUUID": "b836ad0c-f4fa-11ed-8e45-b122ef4b565b",
+    "rank": "C",
+    "totalDuration": null
+}
+
+4. get interview/interview_list/?user_uuid=<str>
+-> 해당 유저가 작성한 interview의 list를 불러온다.
+
+http://13.125.207.34:5000/interview/interview_list/?user_uuid=00001
+[
+    {
+        "badExpressions": [
+            2,
+            0,
+            3,
+            4
+        ],
+        "badPoses": [
+            "3",
+            "1"
+        ],
+        "feedbackList": [
+            {
+                "answer": "answer1",
+                "duration": 10000,
+                "durationWarning": null,
+                "feedback": "a",
+                "question": "question1"
+            },
+            {
+                "answer": "answer2",
+                "duration": 20000,
+                "durationWarning": null,
+                "feedback": "b",
+                "question": "question2"
+            },
+            {
+                "answer": "answer3",
+                "duration": 20000,
+                "durationWarning": null,
+                "feedback": "c",
+                "question": "question3"
+            },
+            {
+                "answer": "answer4",
+                "duration": 15000,
+                "durationWarning": null,
+                "feedback": "d",
+                "question": "question4"
+            },
+            {
+                "answer": "answer5",
+                "duration": 10000,
+                "durationWarning": null,
+                "feedback": "e",
+                "question": "question5"
+            }
+        ],
+        "interviewDate": "Thu, 18 May 2023 06:29:06 GMT",
+        "interviewUUID": "b836ad0c-f4fa-11ed-8e45-b122ef4b565b",
+        "rank": "C",
+        "totalDuration": null
+    }
+]
+
+5. /interview/user_score_list/?user_uuid=<str>
+-> 해당 유저의 score list
+http://13.125.207.34:5000/interview/user_score_list/?user_uuid=00001
+{
+    "max_score": 15,
+    "min_score": 15,
+    "recently_date": 1684391346000.0,
+    "scores": [
+        {
+            "date": 1684391346000.0,
+            "score": 15
+        }
+    ]
+}

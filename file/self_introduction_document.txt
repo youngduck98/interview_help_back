@@ -1,0 +1,280 @@
+1. get: http://54.180.100.19:5000/self_intro/script/?script_uuid=<str>&user_uuid=<str> 
+-> 해당 자소서 반환
+ex) http://54.180.100.19:5000/self_intro/script/?script_uuid=00001&user_uuid=00001
+output ex) 
+{
+    "script_date": 1680265148000,
+    "script_items": [
+        {
+            "index": 1,
+            "script_item_answer": "My name is John.",
+            "script_item_answer_max_length": 2500,
+            "script_item_question": "What is your name?",
+            "script_item_uuid": "00001"
+        },
+        {
+            "index": 2,
+            "script_item_answer": "I'm a software engineer.",
+            "script_item_answer_max_length": 2500,
+            "script_item_question": "What do you do?",
+            "script_item_uuid": "00002"
+        },
+        {
+            "index": 3,
+            "script_item_answer": "I'm from San Francisco.",
+            "script_item_answer_max_length": 2500,
+            "script_item_question": "Where are you from?",
+            "script_item_uuid": "00003"
+        },
+        {
+            "index": 4,
+            "script_item_answer": "I enjoy hiking and reading.",
+            "script_item_answer_max_length": 2500,
+            "script_item_question": "What are your hobbies?",
+            "script_item_uuid": "00004"
+        },
+        {
+            "index": 5,
+            "script_item_answer": "unbreakable will",
+            "script_item_answer_max_length": 2500,
+            "script_item_question": "What do you think is the best virtue?",
+            "script_item_uuid": "00005"
+        }
+    ],
+    "script_title": "00001",
+    "script_uuid": "00001"
+}
+
+2. post: http://54.180.100.19:5000/self_intro/script/?user_uuid=<str> + json(script_title-str, items-list)
+-> 자소서 생성
+ex) http://54.180.100.19:5000/self_intro/script/?&user_uuid=00001
+{
+  "script_title":"new_script_title",
+  "items":[{"question_uuid":"00001", "answer":"new answer"},
+          {"question_uuid":"00002", "answer":"new answer2"},
+          {"question_uuid":"00003", "answer":"new answer3"},
+          {"question_uuid":"00004", "answer":"new answer4"},
+          {"question_uuid":"00005", "answer":"new answer5"}]
+}
+ex output)
+"9843334c-eff2-11ed-99c3-6b4d8d372f9c" -> 새로 만들어진 script_uuid
+
+3. put: http://54.180.100.19:5000/self_intro/script/?script_uuid=<str>&user_uuid=<str> + json(question_uuid-str, answer-str) 
+-> 해당 자소서의 해당 question에 대한 answer 하나씩 고치는 것
+ex)
+http://54.180.100.19:5000/self_intro/script/?script_uuid=00001&user_uuid=00001
+{
+  "question_uuid":"00001",
+  "answer":"updated_answer"
+}
+ex output)
+-> 1
+
+4. get: http://54.180.100.19:5000/self_intro/script_list/<user_uuid> 
+-> 해당 유저가 만든 자소서 리스트 반환 
+형식: {"script_uuid":sr.script_uuid, \
+                "script_date": int(sr.script_date.timestamp()*1000), \
+                    "script_title": sr.script_title, \
+                        "script_items": make_script_item(question_list)}
+ex)http://54.180.100.19:5000/self_intro/script_list/00001
+ex output)
+[
+    {
+        "script_uuid": "00001",
+        "script_date": 1680265148000,
+        "script_title": "00001",
+        "script_items": [
+            {
+                "index": 1,
+                "script_item_uuid": "00001",
+                "script_item_question": "What is your name?",
+                "script_item_answer": "updated_answer",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 2,
+                "script_item_uuid": "00002",
+                "script_item_question": "What do you do?",
+                "script_item_answer": "",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 3,
+                "script_item_uuid": "00003",
+                "script_item_question": "Where are you from?",
+                "script_item_answer": "",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 4,
+                "script_item_uuid": "00004",
+                "script_item_question": "What are your hobbies?",
+                "script_item_answer": "",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 5,
+                "script_item_uuid": "00005",
+                "script_item_question": "What do you think is the best virtue?",
+                "script_item_answer": "",
+                "script_item_answer_max_length": 2500
+            }
+        ]
+    },
+    {
+        "script_uuid": "64a95796-eff2-11ed-99c3-6b4d8d372f9c",
+        "script_date": 1683838387000,
+        "script_title": "new_script_title",
+        "script_items": [
+            {
+                "index": 1,
+                "script_item_uuid": "00001",
+                "script_item_question": "What is your name?",
+                "script_item_answer": "new answer",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 2,
+                "script_item_uuid": "00002",
+                "script_item_question": "What do you do?",
+                "script_item_answer": "new answer2",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 3,
+                "script_item_uuid": "00003",
+                "script_item_question": "Where are you from?",
+                "script_item_answer": "new answer3",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 4,
+                "script_item_uuid": "00004",
+                "script_item_question": "What are your hobbies?",
+                "script_item_answer": "new answer4",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 5,
+                "script_item_uuid": "00005",
+                "script_item_question": "What do you think is the best virtue?",
+                "script_item_answer": "new answer5",
+                "script_item_answer_max_length": 2500
+            }
+        ]
+    },
+    {
+        "script_uuid": "71013536-eff2-11ed-99c3-6b4d8d372f9c",
+        "script_date": 1683838408000,
+        "script_title": "new_script_title",
+        "script_items": [
+            {
+                "index": 1,
+                "script_item_uuid": "00001",
+                "script_item_question": "What is your name?",
+                "script_item_answer": "new answer",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 2,
+                "script_item_uuid": "00002",
+                "script_item_question": "What do you do?",
+                "script_item_answer": "new answer2",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 3,
+                "script_item_uuid": "00003",
+                "script_item_question": "Where are you from?",
+                "script_item_answer": "new answer3",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 4,
+                "script_item_uuid": "00004",
+                "script_item_question": "What are your hobbies?",
+                "script_item_answer": "new answer4",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 5,
+                "script_item_uuid": "00005",
+                "script_item_question": "What do you think is the best virtue?",
+                "script_item_answer": "new answer5",
+                "script_item_answer_max_length": 2500
+            }
+        ]
+    },
+    {
+        "script_uuid": "9843334c-eff2-11ed-99c3-6b4d8d372f9c",
+        "script_date": 1683838473000,
+        "script_title": "new_script_title",
+        "script_items": [
+            {
+                "index": 1,
+                "script_item_uuid": "00001",
+                "script_item_question": "What is your name?",
+                "script_item_answer": "new answer",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 2,
+                "script_item_uuid": "00002",
+                "script_item_question": "What do you do?",
+                "script_item_answer": "new answer2",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 3,
+                "script_item_uuid": "00003",
+                "script_item_question": "Where are you from?",
+                "script_item_answer": "new answer3",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 4,
+                "script_item_uuid": "00004",
+                "script_item_question": "What are your hobbies?",
+                "script_item_answer": "new answer4",
+                "script_item_answer_max_length": 2500
+            },
+            {
+                "index": 5,
+                "script_item_uuid": "00005",
+                "script_item_question": "What do you think is the best virtue?",
+                "script_item_answer": "new answer5",
+                "script_item_answer_max_length": 2500
+            }
+        ]
+    }
+]
+
+
+5. get: http://54.180.100.19:5000/self_intro/all_question/?script_uuid=<str>
+-> 해당 script_uuid의 list 반환
+ex) http://54.180.100.19:5000/self_intro/all_question/?script_uuid=00001
+output ex)
+[
+    {
+        "index": 1,
+        "question": "What is your name?"
+    },
+    {
+        "index": 2,
+        "question": "What do you do?"
+    },
+    {
+        "index": 3,
+        "question": "Where are you from?"
+    },
+    {
+        "index": 4,
+        "question": "What are your hobbies?"
+    },
+    {
+        "index": 5,
+        "question": "What do you think is the best virtue?"
+    }
+]
+
+
