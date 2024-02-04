@@ -43,7 +43,7 @@ cau 4-1 semester capstone project, this project is designed to provide simulatio
     6. swap 공간 할당과 같은 ai 모듈을 위한 Linux 환경설정 과정
     ```
     
-- 성과 및 강조할 점(키워드 중심)
+- 성과
     - 2023 CAU 공학 학술제에서 학장 상 수상
     
 - 관련 사진/링크/샘플 코드
