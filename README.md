@@ -61,7 +61,7 @@ cau 4-1 semester capstone project, this project is designed to provide simulatio
         
     - api 문서(notion 참고)
       - [https://dynamic-ice-676.notion.site/15c7b94dddf94381afe28449f5f87cb6?v=f8251440eaf542ea92823d6592125d6e&pvs=4](https://dynamic-ice-676.notion.site/79d3d2adb04b456ab0cf36d3a7dc6698?pvs=4)
-      - [5.17~5.18 capstone 작업량.txt](file/5.17~5.18 capstone 작업량.txt)
-      - [5-19 capstone 작업량.txt](file/5-19 capstone 작업량.txt)
+      - [5.17~5.18 capstone 작업량.txt](https://github.com/youngduck98/interview_help_back/blob/main/file/5-19%20capstone%20%EC%9E%91%EC%97%85%EB%9F%89.txt)
+      - [5-19 capstone 작업량.txt](https://github.com/youngduck98/interview_help_back/blob/main/file/5.17~5.18%20capstone%20%EC%9E%91%EC%97%85%EB%9F%89.txt)
       - [self_introduction_document.txt](file%2Fself_introduction_document.txt)
       
